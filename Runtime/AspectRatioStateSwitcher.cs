@@ -30,12 +30,14 @@ namespace AspectSwitcher
         private readonly Dictionary<Type, List<AspectSnapshot>> _containers
             = new Dictionary<Type, List<AspectSnapshot>>();
 
+        private readonly List<AspectState> _matchingStates = new List<AspectState>(8);
+
         private AspectState? _pendingState;
         private Coroutine _stabilizationRoutine;
 
         private void Awake()
         {
-            Instance    = this;
+            Instance     = this;
             CurrentState = null;
         }
 
@@ -83,6 +85,7 @@ namespace AspectSwitcher
                 CancelStabilization();
                 CurrentState  = detected;
                 _pendingState = null;
+                config.GetMatchingStates(aspect, _matchingStates);
                 NotifyContainers(detected.Value);
                 return;
             }
@@ -116,6 +119,12 @@ namespace AspectSwitcher
         {
             CurrentState  = state;
             _pendingState = null;
+
+            float aspect = AspectRatioMonitor.CurrentAspect;
+            if (aspect <= 0f)
+                aspect = Screen.width > 0 ? (float)Screen.width / Screen.height : 1f;
+            config.GetMatchingStates(aspect, _matchingStates);
+
             NotifyContainers(state);
         }
 
@@ -126,14 +135,14 @@ namespace AspectSwitcher
             _stabilizationRoutine = null;
         }
 
-        private void NotifyContainers(AspectState state)
+        private void NotifyContainers(AspectState primaryState)
         {
             foreach (var list in _containers.Values)
                 for (int i = 0; i < list.Count; i++)
-                    if (list[i] != null) list[i].HandleStateChanged(state);
+                    if (list[i] != null) list[i].HandleStateChanged(_matchingStates);
 
-            OnStateChanged?.Invoke(state);
-            onStateChanged?.Invoke(state);
+            OnStateChanged?.Invoke(primaryState);
+            onStateChanged?.Invoke(primaryState);
         }
 
         public void ForceState(AspectState state)
@@ -141,6 +150,8 @@ namespace AspectSwitcher
             CancelStabilization();
             CurrentState  = state;
             _pendingState = null;
+            config?.GetContainedStates(state, _matchingStates);
+            if (_matchingStates.Count == 0) _matchingStates.Add(state);
             NotifyContainers(state);
         }
 

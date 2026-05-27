@@ -131,8 +131,13 @@ namespace AspectSwitcher
             return result;
         }
 
+        private readonly List<AspectState> _previewStates = new List<AspectState>(8);
+
         private void PreviewState(AspectState state)
         {
+            _target.config.GetContainedStates(state, _previewStates);
+            if (_previewStates.Count == 0) _previewStates.Add(state);
+
             if (Application.isPlaying) { _target.ForceState(state); return; }
 
             var all = FindObjectsByType<AspectSnapshot>(FindObjectsInactive.Include);
@@ -148,7 +153,7 @@ namespace AspectSwitcher
 
             foreach (var c in all)
                 if (c.Switcher == _target)
-                    c.ApplyStateInstant(state);
+                    c.ApplyStatesInstant(_previewStates);
         }
     }
 }

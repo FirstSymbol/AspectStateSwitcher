@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace AspectSwitcher
@@ -13,7 +14,8 @@ namespace AspectSwitcher
 
         public AspectRatioStateSwitcher Switcher => _switcher;
 
-        private Coroutine _transitionCoroutine;
+        private Coroutine   _transitionCoroutine;
+        private AspectState? _currentAppliedState;
 
         public abstract ISnapshotData CreateSnapshotData();
         protected abstract ISnapshotData FindDataForState(AspectState state);
@@ -27,37 +29,40 @@ namespace AspectSwitcher
             if (def != null) target = def;
         }
 
-        private void OnEnable()  => _switcher?.Register(this);
-        private void OnDisable() => _switcher?.Unregister(this);
-
-        public void HandleStateChanged(AspectState state)
+        private void OnEnable()
         {
-            var data = FindDataForAspect() ?? FindDataForState(state);
-            if (data == null) return;
+            _currentAppliedState = null;
+            _switcher?.Register(this);
+        }
+
+        private void OnDisable()
+        {
+            _currentAppliedState = null;
+            _switcher?.Unregister(this);
+        }
+
+        public void HandleStateChanged(IReadOnlyList<AspectState> matchingStates)
+        {
+            ISnapshotData data         = null;
+            AspectState   appliedState = default;
+
+            for (int i = 0; i < matchingStates.Count; i++)
+            {
+                data = FindDataForState(matchingStates[i]);
+                if (data != null) { appliedState = matchingStates[i]; break; }
+            }
+
+            if (data == null || _currentAppliedState == appliedState) return;
+
+            _currentAppliedState = appliedState;
 
             var settings = ResolveTransition();
-
             if (_transitionCoroutine != null) StopCoroutine(_transitionCoroutine);
 
             if (settings == null || settings.mode == TransitionMode.Instant || !gameObject.activeInHierarchy)
                 data.ApplyTo(target, null, 1f);
             else
                 _transitionCoroutine = StartCoroutine(TransitionCoroutine(data, settings));
-        }
-
-        private ISnapshotData FindDataForAspect()
-        {
-            var config = _switcher?.config;
-            if (config == null) return null;
-
-            float aspect = AspectRatioMonitor.CurrentAspect;
-            for (int i = 0; i < config.states.Count; i++)
-            {
-                if (!config.states[i].range.Matches(aspect)) continue;
-                var data = FindDataForState(config.states[i].state);
-                if (data != null) return data;
-            }
-            return null;
         }
 
         private TransitionSettings ResolveTransition()
@@ -91,7 +96,22 @@ namespace AspectSwitcher
 
         public void ApplyStateInstant(AspectState state)
         {
-            FindDataForState(state)?.ApplyTo(target, null, 1f);
+            var data = FindDataForState(state);
+            if (data == null) return;
+            _currentAppliedState = state;
+            data.ApplyTo(target, null, 1f);
+        }
+
+        public void ApplyStatesInstant(IReadOnlyList<AspectState> states)
+        {
+            for (int i = 0; i < states.Count; i++)
+            {
+                var data = FindDataForState(states[i]);
+                if (data == null) continue;
+                _currentAppliedState = states[i];
+                data.ApplyTo(target, null, 1f);
+                return;
+            }
         }
     }
 }

@@ -6,13 +6,15 @@ A Unity plugin for defining named states and automatically switching between the
 
 ## How it works
 
-You define states in a **config asset** (e.g. `Portrait`, `Landscape`, `Wide`) and assign aspect ratio ranges to each. The **Switcher** monitors the screen every frame and notifies registered **Snapshots** when the active state changes. Each Snapshot is a separate MonoBehaviour component that stores the values of one target component for every state and applies the correct one on switch.
+You define states in a **config asset** and assign aspect ratio ranges to each. The **Switcher** monitors the screen every frame and notifies registered **Snapshots** when the active state changes. Each Snapshot is a separate MonoBehaviour component that stores the values of one target component for every state and applies the correct one on switch.
 
 ```
 AspectStateConfig
-  Portrait   [-∞ → 1]
-  Landscape  [1 → 1.78]
-  Wide       [1.78 → +∞]
+  Portrait  [-∞ → 0.75]
+  Tall      [0.75 → 1.0]
+  Compact   [1.0 → 1.333]
+  Landscape [1.333 → 1.78]
+  Wide      [1.78 → +∞]
 
 AspectRatioStateSwitcher  ← one per scene
   config → AspectStateConfig
@@ -21,8 +23,8 @@ UITransformSnapshot       ← one per object that reacts
   switcher → AspectRatioStateSwitcher  (self-registers on Enable)
   target   → RectTransform
   entries:
-    Portrait  → anchoredPos (0, -300), sizeDelta (400, 200)
-    Landscape → anchoredPos (200, 0),  sizeDelta (600, 80)
+    Portrait  Tall → anchoredPos (0, -300), sizeDelta (400, 200)
+    Landscape      → anchoredPos (200, 0),  sizeDelta (600, 80)
 ```
 
 ---
@@ -33,21 +35,26 @@ UITransformSnapshot       ← one per object that reacts
 
 Right-click in the Project window → **Create → ARSS → Aspect State Config**.
 
-Open the asset and add your states. Each state has a **name** and an **aspect ratio range**:
+A new asset is pre-populated with the full default state set. Open it to adjust ranges.
 
-| State             | Min  | Max  | Typical device                   |
-|-------------------|------|------|----------------------------------|
-| Portrait          | -∞   | 0.75 | Phone held vertically, -∞ - 9:16 |
-| PortraitToSquare  | 0.75 | 1    | Tablet, 3:4 - 1:1                |
-| SquareToSuper     | 1    | 1.33 | Tablet, 1:1 - 4:3                |
-| Super             | 0.75 | 1.33 | Tablet, 3:4 - 4:3                |
-| SquareToLandscape | 1    | 1.78 | Tablet, most phones, 1:1 - 16:9  |
-| Landscape         | 1.33 | 1.78 | Tablet, most phones, 4:3 - 16:9  |
-| Wide              | 1.78 | +∞   | Desktop, ultrawide, 16:9 - +∞    |
+Each state has a **name**, an **aspect ratio range**, and a **visibility checkbox** that toggles whether it is shown on the diagram strip.
 
-The range diagram at the top of the asset inspector shows overlaps and gaps at a glance.
+| State | Min | Max | Covers |
+|---|---|---|---|
+| `Portrait` | -∞ | 0.75 | Narrow portrait phones (9:16 and narrower) |
+| `Tall` | 0.75 | 1.0 | Portrait tablets, wide phones (3:4 – 1:1) |
+| `Compact` | 1.0 | 1.333 | Squarish landscape (1:1 – 4:3) |
+| `Tablet` | 0.75 | 1.333 | Any tablet ratio — compound of Tall + Compact |
+| `PortraitTall` | -∞ | 1.0 | Everything portrait — compound of Portrait + Tall |
+| `CompactLandscape` | 1.0 | 1.78 | Not portrait, not ultra-wide — compound of Compact + Landscape |
+| `Landscape` | 1.333 | 1.78 | Standard landscape (4:3 – 16:9) |
+| `Wide` | 1.78 | +∞ | Ultra-wide, desktop (16:9+) |
 
-> **Priority:** if ranges overlap, the first matching state wins (top of the list).
+**Precise states** (Portrait, Tall, Compact, Landscape, Wide) form non-overlapping bands. **Compound states** (Tablet, PortraitTall, CompactLandscape) span multiple bands — use them in snapshots when several adjacent states should share the same data.
+
+The range diagram at the top of the asset inspector shows all visible states at a glance. Uncheck the checkbox next to a state to hide it from the diagram without removing it from the config.
+
+> **Priority:** if ranges overlap, the first matching state in the list wins. Compound states placed below precise states get picked up when no precise entry exists in a snapshot.
 
 ---
 
@@ -63,7 +70,9 @@ Add the component to any persistent GameObject (e.g. UIManager).
 | **Apply On Start** | Immediately apply the correct state on scene load |
 | **On State Changed** | UnityEvent fired with the new `AspectState` value |
 
-The inspector also shows all registered snapshots grouped by type, with a button to select each one.
+The inspector also shows all registered snapshots grouped by type, with a button to ping each one.
+
+**Preview State** buttons apply snapshots in Edit Mode without entering Play Mode. Clicking a state activates it along with all states whose ranges are fully contained within it — e.g. clicking `CompactLandscape` also applies `Compact` and `Landscape` entries.
 
 ---
 
@@ -76,18 +85,40 @@ Add a snapshot component (e.g. **UITransformSnapshot**) to a GameObject that sho
 | **Switcher** | The `AspectRatioStateSwitcher` in the scene — the snapshot self-registers on Enable |
 | **Target** | Component to read from / write to (auto-filled on Add Component) |
 | **Transition Override** | Per-snapshot transition that overrides the global one |
-| **State Entries** | One entry per state — each stores a snapshot of the target |
+| **State Entries** | One or more entries — each stores snapshot data for one or more states |
 
 **To set up entries:**
 1. Set the **Switcher** reference and confirm the **Target** is correct.
-2. Click **+ Add Entry**, select the state from the dropdown.
-3. Position or configure the object as it should look in that state.
-4. Click **Capture** on the entry — this saves the current values.
-5. Repeat for each state.
-6. Use **Preview** to apply a snapshot in Edit Mode without entering Play Mode.
-7. **Capture All** (on Snapshot) and **Preview State** (on Switcher) operate all entries at once.
+2. Click **+ Add Entry**. The entry shows a state dropdown and a **+ State** button.
+3. Add as many states as needed to the entry — all of them will use the same data.
+4. Position or configure the object as it should look in those states.
+5. Click **Capture** on the entry — this saves the current values.
+6. Repeat for each distinct visual state.
+7. Use **Preview** to apply a single entry in Edit Mode. **Capture All** saves all entries at once.
 
 > There is no manual list to maintain. A snapshot self-registers with its Switcher in `OnEnable` and unregisters in `OnDisable`.
+
+---
+
+## Multiple states per entry
+
+An entry can map several states to the same data, avoiding duplicate entries when adjacent states should look identical:
+
+```
+Entry 1:  Portrait  Tall  →  anchoredPos (0, -300)
+Entry 2:  Compact         →  anchoredPos (100, 0)
+Entry 3:  Landscape Wide  →  anchoredPos (200, 0)
+```
+
+Alternatively, use a compound state (`PortraitTall`, `Tablet`, `CompactLandscape`) as a single entry that covers a broader range without listing individual states.
+
+---
+
+## Matching logic
+
+When the aspect ratio changes the Switcher builds the list of **all** config states whose ranges include the current aspect, in config priority order. Each snapshot finds the first state from that list for which it has an entry and applies it. If the resolved state has not changed since the last switch, the snapshot does nothing.
+
+This means a snapshot with an entry for `Landscape` will correctly activate even if a compound state like `CompactLandscape` is first in the config — the Switcher passes the full list and the snapshot finds `Landscape` as its first match.
 
 ---
 
@@ -130,9 +161,14 @@ States are defined in `AspectState.cs` (inside the plugin's Runtime folder):
 ```csharp
 public enum AspectState
 {
-    Portrait,
-    Landscape,
-    Wide,
+    Portrait         = 0,
+    Tall             = 1,
+    Compact          = 2,
+    PortraitTall     = 9,
+    Tablet           = 10,
+    CompactLandscape = 11,
+    Landscape        = 20,
+    Wide             = 30,
 }
 ```
 
@@ -154,8 +190,8 @@ private void OnStateChanged(AspectState state)
 // Read current state at any time (null before first evaluation)
 AspectState? current = AspectRatioStateSwitcher.CurrentState;
 
-// Force a state manually (also triggers all registered snapshots)
-AspectRatioStateSwitcher.Instance.ForceState(AspectState.Portrait);
+// Force a specific state (also triggers all registered snapshots)
+AspectRatioStateSwitcher.Instance.ForceState(AspectState.Landscape);
 ```
 
 > `OnStateChanged` is a **static** event. Unsubscribe in `OnDestroy` to avoid memory leaks:

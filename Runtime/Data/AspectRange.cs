@@ -17,6 +17,8 @@ namespace AspectSwitcher
 
         public bool Matches(float aspect) => aspect >= min && aspect < max;
 
+        public bool IsContainedIn(AspectRange other) => other.min <= min && max <= other.max;
+
         public static AspectRange FromMin(float min) => new AspectRange(min, float.MaxValue);
         public static AspectRange ToMax(float max)   => new AspectRange(float.MinValue, max);
         public static AspectRange Full               => new AspectRange(float.MinValue, float.MaxValue);

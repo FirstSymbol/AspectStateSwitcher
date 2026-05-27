@@ -22,13 +22,14 @@ namespace AspectSwitcher
         {
             states = new List<AspectStateDefinition>
             {
-                new AspectStateDefinition { state = AspectState.Portrait,          range = new AspectRange(float.MinValue, 0.75f),     showInDiagram = true },
-                new AspectStateDefinition { state = AspectState.PortraitToSquare,  range = new AspectRange(0.75f,         1f),         showInDiagram = true },
-                new AspectStateDefinition { state = AspectState.SquareToSuper,     range = new AspectRange(1f,            1.333333f),  showInDiagram = true },
-                new AspectStateDefinition { state = AspectState.Super,             range = new AspectRange(0.75f,         1.333333f),  showInDiagram = true },
-                new AspectStateDefinition { state = AspectState.SquareToLandscape, range = new AspectRange(1f,            1.78f),      showInDiagram = true },
-                new AspectStateDefinition { state = AspectState.Landscape,         range = new AspectRange(1.33f,         1.78f),      showInDiagram = true },
-                new AspectStateDefinition { state = AspectState.Wide,              range = new AspectRange(1.78f,         float.MaxValue), showInDiagram = true },
+                new AspectStateDefinition { state = AspectState.Portrait,         range = new AspectRange(float.MinValue, 0.75f),      showInDiagram = true },
+                new AspectStateDefinition { state = AspectState.Tall,             range = new AspectRange(0.75f,         1f),          showInDiagram = true },
+                new AspectStateDefinition { state = AspectState.Compact,          range = new AspectRange(1f,            1.333333f),   showInDiagram = true },
+                new AspectStateDefinition { state = AspectState.Tablet,           range = new AspectRange(0.75f,         1.333333f),   showInDiagram = true },
+                new AspectStateDefinition { state = AspectState.PortraitTall,     range = new AspectRange(float.MinValue, 1f),         showInDiagram = true },
+                new AspectStateDefinition { state = AspectState.CompactLandscape, range = new AspectRange(1f,            1.78f),       showInDiagram = true },
+                new AspectStateDefinition { state = AspectState.Landscape,        range = new AspectRange(1.333333f,     1.78f),       showInDiagram = true },
+                new AspectStateDefinition { state = AspectState.Wide,             range = new AspectRange(1.78f,         float.MaxValue), showInDiagram = true },
             };
         }
 
@@ -38,6 +39,30 @@ namespace AspectSwitcher
                 if (states[i].range.Matches(aspect))
                     return states[i].state;
             return null;
+        }
+
+        public void GetMatchingStates(float aspect, List<AspectState> results)
+        {
+            results.Clear();
+            for (int i = 0; i < states.Count; i++)
+                if (states[i].range.Matches(aspect))
+                    results.Add(states[i].state);
+        }
+
+        public void GetContainedStates(AspectState state, List<AspectState> results)
+        {
+            results.Clear();
+            AspectRange clickedRange = default;
+            bool found = false;
+            for (int i = 0; i < states.Count; i++)
+            {
+                if (states[i].state == state) { clickedRange = states[i].range; found = true; break; }
+            }
+            if (!found) { results.Add(state); return; }
+
+            for (int i = 0; i < states.Count; i++)
+                if (states[i].range.IsContainedIn(clickedRange))
+                    results.Add(states[i].state);
         }
     }
 }
