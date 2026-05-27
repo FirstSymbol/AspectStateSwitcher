@@ -59,6 +59,12 @@ namespace AspectSwitcher
             TryPrewarm();   // attempt 2: after domain reload completes
 
             EditorApplication.update += OnUpdate;
+
+            // Unity 6: editors created during the first post-reload rendering pass can
+            // show a black inspector because the UIToolkit container is not yet ready.
+            // ForceRebuild sets a dirty flag; Unity recreates editors on the NEXT
+            // rendering pass (GUIUtility.ProcessEvent), when UIToolkit is properly set up.
+            EditorApplication.delayCall += () => ActiveEditorTracker.sharedTracker.ForceRebuild();
         }
 
         private static void OnUpdate()
@@ -102,9 +108,14 @@ namespace AspectSwitcher
             catch { }
 
             if (stylesType != null)
-                try { RuntimeHelpers.RunClassConstructor(stylesType.TypeHandle); } catch { }
-
-            _prewarmDone = true;
+            {
+                try
+                {
+                    RuntimeHelpers.RunClassConstructor(stylesType.TypeHandle);
+                    _prewarmDone = true;    // only mark done when cctor actually succeeded
+                }
+                catch { }
+            }
         }
 
         // Returns true only when Unity has already fully initialised EditorStyles —

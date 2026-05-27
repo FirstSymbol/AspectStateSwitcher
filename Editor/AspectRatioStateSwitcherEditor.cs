@@ -14,7 +14,6 @@ namespace AspectSwitcher
 
         public override void OnInspectorGUI()
         {
-            if (GUI.skin == null) { Repaint(); return; }
             serializedObject.Update();
 
             // ── Config ──────────────────────────────────────────────────────────────
@@ -126,8 +125,7 @@ namespace AspectSwitcher
             }
 
             // Edit mode: scan the scene for containers that reference this switcher.
-            var all = FindObjectsByType<AspectSnapshotContainer>(
-                FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var all = FindObjectsByType<AspectSnapshotContainer>(FindObjectsInactive.Include);
             foreach (var c in all)
             {
                 if (c.Switcher != _target) continue;
@@ -144,8 +142,7 @@ namespace AspectSwitcher
         {
             if (Application.isPlaying) { _target.ForceState(state); return; }
 
-            var all = FindObjectsByType<AspectSnapshotContainer>(
-                FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var all = FindObjectsByType<AspectSnapshotContainer>(FindObjectsInactive.Include);
 
             var undoTargets = new System.Collections.Generic.List<Object> { _target };
             foreach (var c in all)

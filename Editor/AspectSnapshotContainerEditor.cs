@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEditor;
+using UnityEngine.UIElements;
 
 namespace AspectSwitcher
 {
@@ -10,9 +11,19 @@ namespace AspectSwitcher
 
         private void OnEnable() => _target = (AspectSnapshotContainer)target;
 
-        public override void OnInspectorGUI()
+        // Unity 6 workaround: after domain reload the default IMGUIContainer created
+        // by Unity can be zero-sized. We return our own so it is properly sized.
+        public override VisualElement CreateInspectorGUI()
         {
-            if (GUI.skin == null) { Repaint(); return; }
+            var container = new IMGUIContainer(DrawInspectorContent);
+            container.style.flexGrow = 1f;
+            return container;
+        }
+
+        public override void OnInspectorGUI() => DrawInspectorContent();
+
+        private void DrawInspectorContent()
+        {
             serializedObject.Update();
 
             // ── Switcher (required) ─────────────────────────────────────────────────
@@ -94,7 +105,7 @@ namespace AspectSwitcher
             EditorGUILayout.EndHorizontal();
 
             serializedObject.ApplyModifiedProperties();
-        }
+        } // end DrawInspectorContent
 
         private bool DrawEntry(SerializedProperty entry, int index)
         {
@@ -128,7 +139,7 @@ namespace AspectSwitcher
             else
             {
                 EditorGUI.indentLevel++;
-                EditorGUILayout.PropertyField(dataRef, new GUIContent("Data"), true);
+                DrawSnapshotDataFields(dataRef);
                 EditorGUI.indentLevel--;
 
                 EditorGUILayout.BeginHorizontal();
@@ -148,7 +159,7 @@ namespace AspectSwitcher
                     serializedObject.ApplyModifiedProperties();
                     if (index < _target.entries.Count)
                     {
-                        Undo.RecordObjects(new Object[] { _target, _target.target }, "Preview Snapshot");
+                        Undo.RecordObjects(new UnityEngine.Object[] { _target, _target.target }, "Preview Snapshot");
                         _target.entries[index].data.ApplyTo(_target.target, null, 1f);
                     }
                 }
@@ -157,6 +168,27 @@ namespace AspectSwitcher
 
             EditorGUILayout.EndVertical();
             return true;
+        }
+
+        // Draws the fields of a [SerializeReference] managed reference without going through
+        // ManagedReferencePropertyDrawer, which accesses PropertyEditor+Styles and can crash
+        // the inspector during domain reload before that type's static constructor has run.
+        private static void DrawSnapshotDataFields(SerializedProperty dataRef)
+        {
+            var obj = dataRef.managedReferenceValue;
+            if (obj == null) return;
+
+            EditorGUILayout.LabelField("Data", obj.GetType().Name);
+
+            var iter = dataRef.Copy();
+            if (!iter.NextVisible(true)) return;
+
+            int depth = iter.depth;
+            do
+            {
+                EditorGUILayout.PropertyField(iter, true);
+            }
+            while (iter.NextVisible(false) && iter.depth >= depth);
         }
     }
 }
