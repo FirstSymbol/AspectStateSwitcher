@@ -15,20 +15,26 @@ namespace AspectSwitcher
             if (GUI.skin == null) { Repaint(); return; }
             serializedObject.Update();
 
-            // ── Config (required) ───────────────────────────────────────────────────
+            // ── Switcher (required) ─────────────────────────────────────────────────
             EditorGUI.BeginChangeCheck();
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("config"),
-                new GUIContent("State Config"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_switcher"), new GUIContent("Switcher"));
             if (EditorGUI.EndChangeCheck())
                 serializedObject.ApplyModifiedProperties();
 
-            if (_target.config == null)
+            if (_target.Switcher == null)
             {
                 EditorGUILayout.HelpBox(
-                    "Assign a State Config to enable snapshot editing.",
+                    "Assign an AspectRatioStateSwitcher. The container will self-register on Enable.",
                     MessageType.Warning);
                 serializedObject.ApplyModifiedProperties();
                 return;
+            }
+
+            if (_target.Switcher.config == null)
+            {
+                EditorGUILayout.HelpBox(
+                    "The assigned Switcher has no State Config. Add one to the Switcher first.",
+                    MessageType.Warning);
             }
 
             // ── Snapshot type / target ──────────────────────────────────────────────
@@ -142,8 +148,7 @@ namespace AspectSwitcher
                     serializedObject.ApplyModifiedProperties();
                     if (index < _target.entries.Count)
                     {
-                        Undo.RecordObjects(new UnityEngine.Object[] { _target, _target.target },
-                            "Preview Snapshot");
+                        Undo.RecordObjects(new Object[] { _target, _target.target }, "Preview Snapshot");
                         _target.entries[index].data.ApplyTo(_target.target, null, 1f);
                     }
                 }

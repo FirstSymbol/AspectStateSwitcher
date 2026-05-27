@@ -6,27 +6,29 @@ namespace AspectSwitcher
 {
     public class AspectSnapshotContainer : MonoBehaviour
     {
-        [Tooltip("Config that defines valid states. Must be assigned before adding entries.")]
-        public AspectStateConfig config;
+        [Tooltip("The switcher that drives this container. The container self-registers on Enable.")]
+        [SerializeField] private AspectRatioStateSwitcher _switcher;
 
         public SnapshotType type;
         public Component target;
         public List<StateEntry> entries = new List<StateEntry>();
         public TransitionSettings transitionOverride = new TransitionSettings();
 
+        public AspectRatioStateSwitcher Switcher => _switcher;
+
         private Coroutine _transitionCoroutine;
+
+        private void OnEnable()  => _switcher?.Register(this);
+        private void OnDisable() => _switcher?.Unregister(this);
 
         public void HandleStateChanged(AspectState state)
         {
-            if (config == null) return;
-
             var entry = entries.Find(e => e.state == state);
             if (entry?.data == null) return;
 
             var settings = ResolveTransition();
 
-            if (_transitionCoroutine != null)
-                StopCoroutine(_transitionCoroutine);
+            if (_transitionCoroutine != null) StopCoroutine(_transitionCoroutine);
 
             if (settings == null || settings.mode == TransitionMode.Instant || !gameObject.activeInHierarchy)
                 entry.data.ApplyTo(target, null, 1f);
@@ -38,7 +40,7 @@ namespace AspectSwitcher
         {
             if (transitionOverride != null && transitionOverride.mode != TransitionMode.Instant)
                 return transitionOverride;
-            return AspectRatioStateSwitcher.Instance?.globalTransition;
+            return _switcher?.globalTransition ?? AspectRatioStateSwitcher.Instance?.globalTransition;
         }
 
         private IEnumerator TransitionCoroutine(ISnapshotData toData, TransitionSettings settings)
@@ -68,6 +70,5 @@ namespace AspectSwitcher
             var entry = entries.Find(e => e.state == state);
             entry?.data?.ApplyTo(target, null, 1f);
         }
-
     }
 }
