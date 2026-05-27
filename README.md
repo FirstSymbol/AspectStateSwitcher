@@ -10,8 +10,8 @@ You define states in a **config asset** (e.g. `Portrait`, `Landscape`, `Wide`) a
 
 ```
 AspectStateConfig
-  Portrait   [-∞ → 0.75]
-  Landscape  [0.75 → 1.78]
+  Portrait   [-∞ → 1]
+  Landscape  [1 → 1.78]
   Wide       [1.78 → +∞]
 
 AspectRatioStateSwitcher  ← one per scene
