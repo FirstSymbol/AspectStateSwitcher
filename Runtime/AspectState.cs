@@ -5,7 +5,11 @@ namespace AspectSwitcher
     public enum AspectState
     {
         Portrait = 0,
-        Landscape = 10,
-        Wide = 20,
+        PortraitToSquare = 1,
+        SquareToSuper = 2,
+        Super = 10,
+        SquareToLandscape = 11,
+        Landscape = 20,
+        Wide = 30,
     }
 }

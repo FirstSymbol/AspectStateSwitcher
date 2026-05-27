@@ -16,12 +16,28 @@ MonoBehaviour:
   - state: 0
     range:
       min: -3.4028235e+38
+      max: 0.75
+  - state: 1
+    range:
+      min: 0.75
       max: 1
+  - state: 2
+    range:
+      min: 1
+      max: 1.333333
   - state: 10
+    range:
+      min: 0.75
+      max: 1.333333
+  - state: 11
     range:
       min: 1
       max: 1.78
   - state: 20
+    range:
+      min: 1.33
+      max: 1.78
+  - state: 30
     range:
       min: 1.78
       max: 3.4028235e+38
