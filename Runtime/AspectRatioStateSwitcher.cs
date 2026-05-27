@@ -27,10 +27,8 @@ namespace AspectSwitcher
         [Header("Events")]
         public AspectStateEvent onStateChanged;
 
-        // Containers keyed by SnapshotType for O(1) grouped access.
-        // Populated at runtime via AspectSnapshotContainer.OnEnable / OnDisable.
-        private readonly Dictionary<SnapshotType, List<AspectSnapshotContainer>> _containers
-            = new Dictionary<SnapshotType, List<AspectSnapshotContainer>>();
+        private readonly Dictionary<Type, List<AspectSnapshot>> _containers
+            = new Dictionary<Type, List<AspectSnapshot>>();
 
         private AspectState? _pendingState;
         private Coroutine _stabilizationRoutine;
@@ -54,22 +52,22 @@ namespace AspectSwitcher
 
         // ── Container registration ────────────────────────────────────────────────
 
-        public void Register(AspectSnapshotContainer c)
+        public void Register(AspectSnapshot c)
         {
             if (c == null) return;
-            if (!_containers.TryGetValue(c.type, out var list))
-                _containers[c.type] = list = new List<AspectSnapshotContainer>();
+            var key = c.GetType();
+            if (!_containers.TryGetValue(key, out var list))
+                _containers[key] = list = new List<AspectSnapshot>();
             if (!list.Contains(c)) list.Add(c);
         }
 
-        public void Unregister(AspectSnapshotContainer c)
+        public void Unregister(AspectSnapshot c)
         {
-            if (c != null && _containers.TryGetValue(c.type, out var list))
+            if (c != null && _containers.TryGetValue(c.GetType(), out var list))
                 list.Remove(c);
         }
 
-        public IReadOnlyDictionary<SnapshotType, List<AspectSnapshotContainer>> RegisteredContainers
-            => _containers;
+        public IReadOnlyDictionary<Type, List<AspectSnapshot>> RegisteredContainers => _containers;
 
         // ── State logic ───────────────────────────────────────────────────────────
 
@@ -100,10 +98,8 @@ namespace AspectSwitcher
                 return;
             }
 
-            // New state already pending — stabilization coroutine is already running.
             if (detected == _pendingState) return;
 
-            // Different pending state: restart stabilization.
             _pendingState = detected;
             CancelStabilization();
 

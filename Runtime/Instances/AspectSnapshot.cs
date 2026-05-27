@@ -1,39 +1,53 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace AspectSwitcher
 {
-    public class AspectSnapshotContainer : MonoBehaviour
+    public abstract class AspectSnapshot : MonoBehaviour
     {
-        [Tooltip("The switcher that drives this container. The container self-registers on Enable.")]
+        [Tooltip("The switcher that drives this snapshot. Self-registers on Enable.")]
         [SerializeField] private AspectRatioStateSwitcher _switcher;
 
-        public SnapshotType type;
         public Component target;
-        public List<StateEntry> entries = new List<StateEntry>();
         public TransitionSettings transitionOverride = new TransitionSettings();
 
         public AspectRatioStateSwitcher Switcher => _switcher;
 
         private Coroutine _transitionCoroutine;
 
+        // Returns a new blank data instance matching this snapshot's type (used for transition from-capture).
+        public abstract ISnapshotData CreateSnapshotData();
+
+        // Returns the data for the given state, or null if no entry exists for it.
+        protected abstract ISnapshotData FindDataForState(AspectState state);
+
+        // Returns data at the given entry index (used by the editor for Capture / Preview).
+        public abstract ISnapshotData GetDataAt(int index);
+
+        protected virtual Component FindDefaultTarget() => null;
+
+        private void Reset()
+        {
+            var def = FindDefaultTarget();
+            if (def != null) target = def;
+        }
+
         private void OnEnable()  => _switcher?.Register(this);
         private void OnDisable() => _switcher?.Unregister(this);
 
         public void HandleStateChanged(AspectState state)
         {
-            var entry = entries.Find(e => e.state == state);
-            if (entry?.data == null) return;
+            var data = FindDataForState(state);
+            if (data == null) return;
 
             var settings = ResolveTransition();
 
             if (_transitionCoroutine != null) StopCoroutine(_transitionCoroutine);
 
             if (settings == null || settings.mode == TransitionMode.Instant || !gameObject.activeInHierarchy)
-                entry.data.ApplyTo(target, null, 1f);
+                data.ApplyTo(target, null, 1f);
             else
-                _transitionCoroutine = StartCoroutine(TransitionCoroutine(entry.data, settings));
+                _transitionCoroutine = StartCoroutine(TransitionCoroutine(data, settings));
         }
 
         private TransitionSettings ResolveTransition()
@@ -45,7 +59,7 @@ namespace AspectSwitcher
 
         private IEnumerator TransitionCoroutine(ISnapshotData toData, TransitionSettings settings)
         {
-            var fromData = type.CreateData();
+            var fromData = CreateSnapshotData();
             fromData?.CaptureFrom(target);
 
             float elapsed  = 0f;
@@ -67,8 +81,7 @@ namespace AspectSwitcher
 
         public void ApplyStateInstant(AspectState state)
         {
-            var entry = entries.Find(e => e.state == state);
-            entry?.data?.ApplyTo(target, null, 1f);
+            FindDataForState(state)?.ApplyTo(target, null, 1f);
         }
     }
 }

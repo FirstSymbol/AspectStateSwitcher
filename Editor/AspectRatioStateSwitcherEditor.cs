@@ -8,7 +8,7 @@ namespace AspectSwitcher
     public class AspectRatioStateSwitcherEditor : Editor
     {
         private AspectRatioStateSwitcher _target;
-        private readonly Dictionary<SnapshotType, bool> _foldouts = new Dictionary<SnapshotType, bool>();
+        private readonly Dictionary<string, bool> _foldouts = new Dictionary<string, bool>();
 
         private void OnEnable() => _target = (AspectRatioStateSwitcher)target;
 
@@ -34,10 +34,10 @@ namespace AspectSwitcher
                 EditorGUILayout.Space(2f);
             }
 
-            // ── Registered containers ───────────────────────────────────────────────
+            // ── Registered snapshots ────────────────────────────────────────────────
             EditorGUILayout.Space(6f);
-            EditorGUILayout.LabelField("Registered Containers", EditorStyles.boldLabel);
-            DrawContainersGrouped();
+            EditorGUILayout.LabelField("Registered Snapshots", EditorStyles.boldLabel);
+            DrawSnapshotsGrouped();
 
             // ── Global Transition ───────────────────────────────────────────────────
             EditorGUILayout.Space(6f);
@@ -68,39 +68,38 @@ namespace AspectSwitcher
             serializedObject.ApplyModifiedProperties();
         }
 
-        // ── Container display ────────────────────────────────────────────────────
+        // ── Snapshot display ─────────────────────────────────────────────────────
 
-        private void DrawContainersGrouped()
+        private void DrawSnapshotsGrouped()
         {
-            var grouped = GetContainersGrouped();
+            var grouped = GetSnapshotsGrouped();
             if (grouped.Count == 0)
             {
                 EditorGUILayout.HelpBox(
-                    "No containers found. Add AspectSnapshotContainer components to scene objects " +
-                    "and set their Switcher field to this component.",
+                    "No snapshots found. Add an AspectSnapshot component (e.g. UITransformSnapshot) " +
+                    "to a scene object and set its Switcher field to this component.",
                     MessageType.None);
                 return;
             }
 
             foreach (var kvp in grouped)
             {
-                if (!_foldouts.TryGetValue(kvp.Key, out bool expanded))
-                    _foldouts[kvp.Key] = expanded = true;
+                string key = kvp.Key;
+                if (!_foldouts.TryGetValue(key, out bool expanded))
+                    _foldouts[key] = expanded = true;
 
-                _foldouts[kvp.Key] = EditorGUILayout.Foldout(
-                    expanded, $"{kvp.Key}  ({kvp.Value.Count})", true, EditorStyles.foldoutHeader);
+                _foldouts[key] = EditorGUILayout.Foldout(
+                    expanded, $"{key}  ({kvp.Value.Count})", true, EditorStyles.foldoutHeader);
 
-                if (!_foldouts[kvp.Key]) continue;
+                if (!_foldouts[key]) continue;
 
                 EditorGUI.indentLevel++;
                 foreach (var c in kvp.Value)
                 {
                     if (c == null) continue;
                     EditorGUILayout.BeginHorizontal();
-
                     using (new EditorGUI.DisabledScope(true))
-                        EditorGUILayout.ObjectField(c, typeof(AspectSnapshotContainer), true);
-
+                        EditorGUILayout.ObjectField(c, typeof(AspectSnapshot), true);
                     if (GUILayout.Button("→", GUILayout.Width(24f)))
                     {
                         Selection.activeGameObject = c.gameObject;
@@ -112,25 +111,28 @@ namespace AspectSwitcher
             }
         }
 
-        private Dictionary<SnapshotType, List<AspectSnapshotContainer>> GetContainersGrouped()
+        private Dictionary<string, List<AspectSnapshot>> GetSnapshotsGrouped()
         {
-            var result = new Dictionary<SnapshotType, List<AspectSnapshotContainer>>();
+            var result = new Dictionary<string, List<AspectSnapshot>>();
 
             if (Application.isPlaying)
             {
                 foreach (var kvp in _target.RegisteredContainers)
-                    if (kvp.Value.Count > 0)
-                        result[kvp.Key] = new List<AspectSnapshotContainer>(kvp.Value);
+                {
+                    if (kvp.Value.Count == 0) continue;
+                    string key = kvp.Key.Name;
+                    result[key] = new List<AspectSnapshot>(kvp.Value);
+                }
                 return result;
             }
 
-            // Edit mode: scan the scene for containers that reference this switcher.
-            var all = FindObjectsByType<AspectSnapshotContainer>(FindObjectsInactive.Include);
+            var all = FindObjectsByType<AspectSnapshot>(FindObjectsInactive.Include);
             foreach (var c in all)
             {
                 if (c.Switcher != _target) continue;
-                if (!result.TryGetValue(c.type, out var list))
-                    result[c.type] = list = new List<AspectSnapshotContainer>();
+                string key = c.GetType().Name;
+                if (!result.TryGetValue(key, out var list))
+                    result[key] = list = new List<AspectSnapshot>();
                 list.Add(c);
             }
             return result;
@@ -142,9 +144,9 @@ namespace AspectSwitcher
         {
             if (Application.isPlaying) { _target.ForceState(state); return; }
 
-            var all = FindObjectsByType<AspectSnapshotContainer>(FindObjectsInactive.Include);
+            var all = FindObjectsByType<AspectSnapshot>(FindObjectsInactive.Include);
 
-            var undoTargets = new System.Collections.Generic.List<Object> { _target };
+            var undoTargets = new List<UnityEngine.Object> { _target };
             foreach (var c in all)
             {
                 if (c.Switcher != _target) continue;
