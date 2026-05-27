@@ -13,10 +13,8 @@ namespace AspectSwitcher
 
         public override void OnInspectorGUI()
         {
-            if (GUI.skin == null) { Repaint(); return; }
             serializedObject.Update();
 
-            // ── Diagram ─────────────────────────────────────────────────────────────
             if (_target.states?.Count > 0)
             {
                 var r = GUILayoutUtility.GetRect(0f, AspectRangeDiagram.GetHeight(), GUILayout.ExpandWidth(true));
@@ -24,7 +22,6 @@ namespace AspectSwitcher
                 EditorGUILayout.Space(4f);
             }
 
-            // ── State list ──────────────────────────────────────────────────────────
             EditorGUILayout.LabelField("States", EditorStyles.boldLabel);
 
             var statesProp = serializedObject.FindProperty("states");

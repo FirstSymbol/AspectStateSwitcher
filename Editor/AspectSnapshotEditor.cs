@@ -14,7 +14,6 @@ namespace AspectSwitcher
         {
             serializedObject.Update();
 
-            // ── Switcher ────────────────────────────────────────────────────────────
             EditorGUI.BeginChangeCheck();
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_switcher"), new GUIContent("Switcher"));
             if (EditorGUI.EndChangeCheck())
@@ -36,12 +35,10 @@ namespace AspectSwitcher
                     MessageType.Warning);
             }
 
-            // ── Target / Transition ─────────────────────────────────────────────────
             EditorGUILayout.Space(4f);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("target"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("transitionOverride"), true);
 
-            // ── Entries ─────────────────────────────────────────────────────────────
             EditorGUILayout.Space(6f);
             EditorGUILayout.LabelField("State Entries", EditorStyles.boldLabel);
 
@@ -91,7 +88,6 @@ namespace AspectSwitcher
 
             if (deleted) { EditorGUILayout.EndVertical(); return false; }
 
-            // data is a concrete serializable class — PropertyField is safe here.
             var dataProp = entry.FindPropertyRelative("data");
             EditorGUI.indentLevel++;
             EditorGUILayout.PropertyField(dataProp, new GUIContent("Data"), true);

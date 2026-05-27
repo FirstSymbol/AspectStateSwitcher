@@ -16,7 +16,6 @@ namespace AspectSwitcher
         {
             serializedObject.Update();
 
-            // ── Config ──────────────────────────────────────────────────────────────
             EditorGUILayout.LabelField("Configuration", EditorStyles.boldLabel);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("config"), new GUIContent("State Config"));
 
@@ -34,24 +33,20 @@ namespace AspectSwitcher
                 EditorGUILayout.Space(2f);
             }
 
-            // ── Registered snapshots ────────────────────────────────────────────────
             EditorGUILayout.Space(6f);
             EditorGUILayout.LabelField("Registered Snapshots", EditorStyles.boldLabel);
             DrawSnapshotsGrouped();
 
-            // ── Global Transition ───────────────────────────────────────────────────
             EditorGUILayout.Space(6f);
             EditorGUILayout.LabelField("Global Transition", EditorStyles.boldLabel);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("globalTransition"), true);
 
-            // ── Settings ────────────────────────────────────────────────────────────
             EditorGUILayout.Space(6f);
             EditorGUILayout.LabelField("Settings", EditorStyles.boldLabel);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("stateStabilization"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("applyOnStart"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("onStateChanged"));
 
-            // ── Preview ─────────────────────────────────────────────────────────────
             if (_target.config?.states?.Count > 0)
             {
                 EditorGUILayout.Space(6f);
@@ -67,8 +62,6 @@ namespace AspectSwitcher
 
             serializedObject.ApplyModifiedProperties();
         }
-
-        // ── Snapshot display ─────────────────────────────────────────────────────
 
         private void DrawSnapshotsGrouped()
         {
@@ -137,8 +130,6 @@ namespace AspectSwitcher
             }
             return result;
         }
-
-        // ── Preview ──────────────────────────────────────────────────────────────
 
         private void PreviewState(AspectState state)
         {

@@ -14,9 +14,8 @@ namespace AspectSwitcher
 
         private struct AspectRatioMonitorUpdate { }
 
-        // Runs before any MonoBehaviour on every domain reload / play-mode entry.
-        // Injects a single Tick into the Unity player loop so no MonoBehaviour
-        // Update is needed anywhere in the plugin.
+        // SubsystemRegistration runs before any MonoBehaviour and before Play Mode entry,
+        // letting us inject into the player loop without a MonoBehaviour of our own.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void DomainReset()
         {
@@ -37,7 +36,7 @@ namespace AspectSwitcher
                 ref var update = ref root.subSystemList[i];
                 var existing   = update.subSystemList ?? Array.Empty<PlayerLoopSystem>();
 
-                // Remove stale entry from a previous domain reload, then re-add.
+                // Strip the stale entry left from the previous domain, then re-add.
                 var rebuilt = new List<PlayerLoopSystem>(existing.Length + 1);
                 foreach (var s in existing)
                     if (s.type != typeof(AspectRatioMonitorUpdate))
@@ -54,8 +53,6 @@ namespace AspectSwitcher
             }
         }
 
-        // Called once per frame by the player loop — the single check point for
-        // aspect ratio changes across the entire plugin.
         private static void Tick()
         {
             if (Screen.height == 0) return;
@@ -74,7 +71,6 @@ namespace AspectSwitcher
             }
         }
 
-        // Seeds the initial value on Start before the first change event fires.
         public static void Initialize()
         {
             if (Screen.height == 0) return;

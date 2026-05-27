@@ -50,8 +50,6 @@ namespace AspectSwitcher
 
         private void HandleAspectChanged(float _) => EvaluateAndSwitch();
 
-        // ── Container registration ────────────────────────────────────────────────
-
         public void Register(AspectSnapshot c)
         {
             if (c == null) return;
@@ -68,8 +66,6 @@ namespace AspectSwitcher
         }
 
         public IReadOnlyDictionary<Type, List<AspectSnapshot>> RegisteredContainers => _containers;
-
-        // ── State logic ───────────────────────────────────────────────────────────
 
         private void EvaluateAndSwitch(bool forceApply = false)
         {

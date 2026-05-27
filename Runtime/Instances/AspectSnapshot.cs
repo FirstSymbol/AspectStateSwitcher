@@ -15,13 +15,8 @@ namespace AspectSwitcher
 
         private Coroutine _transitionCoroutine;
 
-        // Returns a new blank data instance matching this snapshot's type (used for transition from-capture).
         public abstract ISnapshotData CreateSnapshotData();
-
-        // Returns the data for the given state, or null if no entry exists for it.
         protected abstract ISnapshotData FindDataForState(AspectState state);
-
-        // Returns data at the given entry index (used by the editor for Capture / Preview).
         public abstract ISnapshotData GetDataAt(int index);
 
         protected virtual Component FindDefaultTarget() => null;
