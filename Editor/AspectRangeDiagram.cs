@@ -53,6 +53,7 @@ namespace AspectSwitcher
             for (int i = 0; i < states.Count; i++)
             {
                 var s  = states[i];
+                if (!s.showInDiagram) continue;
                 float mn = s.range.min < -1e30f ? DiagramMin : Mathf.Clamp(s.range.min, DiagramMin, DiagramMax);
                 float mx = s.range.max >  1e30f ? DiagramMax : Mathf.Clamp(s.range.max, DiagramMin, DiagramMax);
                 if (mx <= mn) continue;

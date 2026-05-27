@@ -32,7 +32,7 @@ namespace AspectSwitcher
 
         public void HandleStateChanged(AspectState state)
         {
-            var data = FindDataForState(state);
+            var data = FindDataForAspect() ?? FindDataForState(state);
             if (data == null) return;
 
             var settings = ResolveTransition();
@@ -43,6 +43,21 @@ namespace AspectSwitcher
                 data.ApplyTo(target, null, 1f);
             else
                 _transitionCoroutine = StartCoroutine(TransitionCoroutine(data, settings));
+        }
+
+        private ISnapshotData FindDataForAspect()
+        {
+            var config = _switcher?.config;
+            if (config == null) return null;
+
+            float aspect = AspectRatioMonitor.CurrentAspect;
+            for (int i = 0; i < config.states.Count; i++)
+            {
+                if (!config.states[i].range.Matches(aspect)) continue;
+                var data = FindDataForState(config.states[i].state);
+                if (data != null) return data;
+            }
+            return null;
         }
 
         private TransitionSettings ResolveTransition()

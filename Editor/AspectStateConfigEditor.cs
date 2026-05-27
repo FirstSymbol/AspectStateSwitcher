@@ -31,9 +31,12 @@ namespace AspectSwitcher
             {
                 var elem      = statesProp.GetArrayElementAtIndex(i);
                 var stateProp = elem.FindPropertyRelative("state");
+                var showProp  = elem.FindPropertyRelative("showInDiagram");
 
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
                 EditorGUILayout.BeginHorizontal();
+
+                showProp.boolValue = EditorGUILayout.Toggle(showProp.boolValue, GUILayout.Width(16f));
 
                 stateProp.intValue = (int)(AspectState)EditorGUILayout.EnumPopup(
                     (AspectState)stateProp.intValue,
@@ -58,6 +61,7 @@ namespace AspectSwitcher
                 newElem.FindPropertyRelative("state").intValue = 0;
                 newElem.FindPropertyRelative("range").FindPropertyRelative("min").floatValue = float.MinValue;
                 newElem.FindPropertyRelative("range").FindPropertyRelative("max").floatValue = float.MaxValue;
+                newElem.FindPropertyRelative("showInDiagram").boolValue = true;
             }
 
             serializedObject.ApplyModifiedProperties();

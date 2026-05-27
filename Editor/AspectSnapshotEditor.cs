@@ -58,8 +58,10 @@ namespace AspectSwitcher
             if (GUILayout.Button("+ Add Entry"))
             {
                 entriesProp.arraySize++;
-                var newElem = entriesProp.GetArrayElementAtIndex(entriesProp.arraySize - 1);
-                newElem.FindPropertyRelative("state").intValue = 0;
+                var newElem    = entriesProp.GetArrayElementAtIndex(entriesProp.arraySize - 1);
+                var statesProp = newElem.FindPropertyRelative("states");
+                statesProp.arraySize = 1;
+                statesProp.GetArrayElementAtIndex(0).intValue = 0;
             }
             if (GUILayout.Button("Capture All") && _target.target != null)
             {
@@ -80,11 +82,37 @@ namespace AspectSwitcher
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.BeginHorizontal();
 
-            var stateProp = entry.FindPropertyRelative("state");
-            stateProp.intValue = (int)(AspectState)EditorGUILayout.EnumPopup((AspectState)stateProp.intValue);
+            var statesProp = entry.FindPropertyRelative("states");
 
+            if (statesProp.arraySize == 0)
+            {
+                statesProp.arraySize = 1;
+                statesProp.GetArrayElementAtIndex(0).intValue = 0;
+            }
+
+            int toRemoveState = -1;
+            for (int si = 0; si < statesProp.arraySize; si++)
+            {
+                var sp = statesProp.GetArrayElementAtIndex(si);
+                sp.intValue = (int)(AspectState)EditorGUILayout.EnumPopup(
+                    (AspectState)sp.intValue, GUILayout.MinWidth(80f), GUILayout.MaxWidth(150f));
+
+                if (statesProp.arraySize > 1 && GUILayout.Button("✕", GUILayout.Width(18f)))
+                    toRemoveState = si;
+            }
+
+            if (GUILayout.Button("+ State", GUILayout.Width(56f)))
+            {
+                statesProp.arraySize++;
+                statesProp.GetArrayElementAtIndex(statesProp.arraySize - 1).intValue = 0;
+            }
+
+            GUILayout.FlexibleSpace();
             bool deleted = GUILayout.Button("✕", GUILayout.Width(22f));
             EditorGUILayout.EndHorizontal();
+
+            if (toRemoveState >= 0)
+                statesProp.DeleteArrayElementAtIndex(toRemoveState);
 
             if (deleted) { EditorGUILayout.EndVertical(); return false; }
 
