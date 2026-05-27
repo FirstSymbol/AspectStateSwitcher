@@ -35,11 +35,15 @@ Right-click in the Project window → **Create → ARSS → Aspect State Config*
 
 Open the asset and add your states. Each state has a **name** and an **aspect ratio range**:
 
-| State     | Min   | Max   | Typical device         |
-|-----------|-------|-------|------------------------|
-| Portrait  | -∞    | 0.75  | Phone held vertically  |
-| Landscape | 0.75  | 1.78  | Tablet, most phones    |
-| Wide      | 1.78  | +∞    | Desktop, ultrawide     |
+| State             | Min  | Max  | Typical device                   |
+|-------------------|------|------|----------------------------------|
+| Portrait          | -∞   | 0.75 | Phone held vertically, -∞ - 9:16 |
+| PortraitToSquare  | 0.75 | 1    | Tablet, 3:4 - 1:1                |
+| SquareToSuper     | 1    | 1.33 | Tablet, 1:1 - 4:3                |
+| Super             | 0.75 | 1.33 | Tablet, 3:4 - 4:3                |
+| SquareToLandscape | 1    | 1.78 | Tablet, most phones, 1:1 - 16:9  |
+| Landscape         | 1.33 | 1.78 | Tablet, most phones, 4:3 - 16:9  |
+| Wide              | 1.78 | +∞   | Desktop, ultrawide, 16:9 - +∞    |
 
 The range diagram at the top of the asset inspector shows overlaps and gaps at a glance.
 
