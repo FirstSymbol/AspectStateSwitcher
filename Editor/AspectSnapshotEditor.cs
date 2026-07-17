@@ -105,92 +105,137 @@ namespace AspectSwitcher
         }
 
         private bool DrawEntry(SerializedProperty entry, int index)
+{
+    if (entry == null) return false;
+
+    EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+    
+    float viewWidth = EditorGUIUtility.currentViewWidth - 35f;
+
+    var statesProp = entry.FindPropertyRelative("states");
+    if (statesProp == null)
+    {
+        EditorGUILayout.HelpBox("Error: 'states' property not found.", MessageType.Error);
+        EditorGUILayout.EndVertical();
+        return true;
+    }
+
+    if (statesProp.arraySize == 0)
+    {
+        statesProp.arraySize = 1;
+        statesProp.GetArrayElementAtIndex(0).intValue = 0;
+    }
+
+    Rect currentRect = EditorGUILayout.GetControlRect(false, 0f); 
+    float currentX = 0f;
+    float spaceBetween = 4f;
+
+    EditorGUILayout.BeginHorizontal();
+    
+    int toRemoveState = -1;
+    for (var si = 0; si < statesProp.arraySize; si++)
+    {
+        float popupWidth = 100f; 
+        float removeBtnWidth = (statesProp.arraySize > 1) ? 20f : 0f;
+        float elementWidth = popupWidth + removeBtnWidth;
+
+        if (currentX + elementWidth > viewWidth && currentX > 0f)
         {
-            if (entry == null) return false;
-
-            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.BeginHorizontal();
-
-            var statesProp = entry.FindPropertyRelative("states");
-            if (statesProp == null)
-            {
-                EditorGUILayout.HelpBox("Error: 'states' property not found.", MessageType.Error);
-                EditorGUILayout.EndHorizontal();
-                EditorGUILayout.EndVertical();
-                return true;
-            }
-
-            if (statesProp.arraySize == 0)
-            {
-                statesProp.arraySize = 1;
-                statesProp.GetArrayElementAtIndex(0).intValue = 0;
-            }
-
-            var toRemoveState = -1;
-            for (var si = 0; si < statesProp.arraySize; si++)
-            {
-                var sp = statesProp.GetArrayElementAtIndex(si);
-                sp.intValue = (int)(AspectState)EditorGUILayout.EnumPopup(
-                    (AspectState)sp.intValue, GUILayout.MinWidth(80f), GUILayout.MaxWidth(150f));
-
-                if (statesProp.arraySize > 1 && GUILayout.Button("✕", GUILayout.Width(18f)))
-                    toRemoveState = si;
-            }
-
-            if (GUILayout.Button("+ State", GUILayout.Width(56f)))
-            {
-                statesProp.arraySize++;
-                statesProp.GetArrayElementAtIndex(statesProp.arraySize - 1).intValue = 0;
-            }
-
-            GUILayout.FlexibleSpace();
-            var deleted = GUILayout.Button("✕", GUILayout.Width(22f));
             EditorGUILayout.EndHorizontal();
-
-            if (toRemoveState >= 0)
-                statesProp.DeleteArrayElementAtIndex(toRemoveState);
-
-            if (deleted)
-            {
-                EditorGUILayout.EndVertical();
-                return false;
-            }
-
-            var dataProp = entry.FindPropertyRelative("_data");
-
-            if (dataProp != null)
-            {
-                EditorGUI.indentLevel++;
-                EditorGUILayout.PropertyField(dataProp, new GUIContent("Data"), true);
-                EditorGUI.indentLevel--;
-            }
-            else
-            {
-                EditorGUILayout.HelpBox($"Error: Serialized field '_data' not found in {entry.type}!",
-                    MessageType.Error);
-            }
-
+            EditorGUILayout.Space(spaceBetween);
             EditorGUILayout.BeginHorizontal();
-            if (GUILayout.Button("Capture") && _target.target != null)
-            {
-                serializedObject.ApplyModifiedProperties();
-                Undo.RecordObject(_target, "Capture Snapshot");
-                _target.GetDataAt(index).CaptureFrom(_target.target);
-                EditorUtility.SetDirty(_target);
-                serializedObject.Update();
-            }
-
-            if (GUILayout.Button("Preview") && _target.target != null)
-            {
-                serializedObject.ApplyModifiedProperties();
-                Undo.RecordObjects(new Object[] { _target, _target.target }, "Preview Snapshot");
-                _target.GetDataAt(index).ApplyTo(_target.target, null, 1f);
-            }
-
-            EditorGUILayout.EndHorizontal();
-
-            EditorGUILayout.EndVertical();
-            return true;
+            currentX = 0f;
         }
+
+        var sp = statesProp.GetArrayElementAtIndex(si);
+        
+        sp.intValue = (int)(AspectState)EditorGUILayout.EnumPopup(
+            (AspectState)sp.intValue, GUILayout.Width(popupWidth));
+        currentX += popupWidth;
+
+        if (statesProp.arraySize > 1)
+        {
+            if (GUILayout.Button("✕", GUILayout.Width(18f), GUILayout.Height(18f)))
+                toRemoveState = si;
+            currentX += removeBtnWidth;
+        }
+
+        currentX += spaceBetween;
+    }
+
+    float addStateBtnWidth = 60f;
+    if (currentX + addStateBtnWidth > viewWidth && currentX > 0f)
+    {
+        EditorGUILayout.EndHorizontal();
+        EditorGUILayout.Space(spaceBetween);
+        EditorGUILayout.BeginHorizontal();
+        currentX = 0f;
+    }
+    
+    if (GUILayout.Button("+ State", GUILayout.Width(addStateBtnWidth)))
+    {
+        statesProp.arraySize++;
+        statesProp.GetArrayElementAtIndex(statesProp.arraySize - 1).intValue = 0;
+    }
+    currentX += addStateBtnWidth + spaceBetween;
+
+    float deleteEntryBtnWidth = 24f;
+    if (currentX + deleteEntryBtnWidth > viewWidth && currentX > 0f)
+    {
+        EditorGUILayout.EndHorizontal();
+        EditorGUILayout.Space(spaceBetween);
+        EditorGUILayout.BeginHorizontal();
+    }
+    
+    GUILayout.FlexibleSpace();
+    var deleted = GUILayout.Button("✕", GUILayout.Width(22f));
+    EditorGUILayout.EndHorizontal();
+
+    if (toRemoveState >= 0)
+        statesProp.DeleteArrayElementAtIndex(toRemoveState);
+
+    if (deleted)
+    {
+        EditorGUILayout.EndVertical();
+        return false;
+    }
+
+    EditorGUILayout.Space(4f);
+
+    var dataProp = entry.FindPropertyRelative("_data");
+    if (dataProp != null)
+    {
+        EditorGUI.indentLevel++;
+        EditorGUILayout.PropertyField(dataProp, new GUIContent("Data"), true);
+        EditorGUI.indentLevel--;
+    }
+    else
+    {
+        EditorGUILayout.HelpBox($"Error: Serialized field '_data' not found in {entry.type}!",
+            MessageType.Error);
+    }
+
+    EditorGUILayout.Space(2f);
+    EditorGUILayout.BeginHorizontal();
+    if (GUILayout.Button("Capture") && _target.target != null)
+    {
+        serializedObject.ApplyModifiedProperties();
+        Undo.RecordObject(_target, "Capture Snapshot");
+        _target.GetDataAt(index).CaptureFrom(_target.target);
+        EditorUtility.SetDirty(_target);
+        serializedObject.Update();
+    }
+
+    if (GUILayout.Button("Preview") && _target.target != null)
+    {
+        serializedObject.ApplyModifiedProperties();
+        Undo.RecordObjects(new Object[] { _target, _target.target }, "Preview Snapshot");
+        _target.GetDataAt(index).ApplyTo(_target.target, null, 1f);
+    }
+    EditorGUILayout.EndHorizontal();
+
+    EditorGUILayout.EndVertical();
+    return true;
+}
     }
 }

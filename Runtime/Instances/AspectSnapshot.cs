@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace AspectSwitcher
 {
-    public abstract class AspectSnapshot<TData, TEntry> : AspectSnapshotBase where TData : SnapshotData, new() where TEntry : SnapshotEntry<TData>
+    public abstract class AspectSnapshot<TData, TEntry> : AspectSnapshotBase where TData : SnapshotData, new() where TEntry : SnapshotEntry<TData>, new()
     {
         public new List<TEntry> entries = new List<TEntry>();
         
@@ -14,7 +14,22 @@ namespace AspectSwitcher
                 if (entries[i].states.Contains(state)) return entries[i].data;
             return null;
         }
-        public new virtual TData GetDataAt(int index) => entries[index].data;
+        public override SnapshotData GetDataAt(int index)
+        {
+            if (index < 0) return null;
+    
+            while (entries.Count <= index)
+            {
+                entries.Add(new TEntry());
+            }
+    
+            if (entries[index] == null)
+            {
+                entries[index] = new TEntry();
+            }
+    
+            return entries[index].data;
+        }
         
     }
 }
