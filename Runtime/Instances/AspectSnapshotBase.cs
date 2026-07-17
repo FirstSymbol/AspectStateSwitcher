@@ -8,10 +8,7 @@ namespace AspectSwitcher
     {
         [Tooltip("The switcher that drives this snapshot. Self-registers on Enable.")]
         [SerializeField] private AspectRatioStateSwitcher _switcher;
-        [SerializeField] private bool _workIfInactive = true;
 
-        public List<SnapshotEntry<SnapshotData>> entries = new List<SnapshotEntry<SnapshotData>>();
-        
         public Component target;
         public TransitionSettings transitionOverride = new TransitionSettings();
         
@@ -22,13 +19,11 @@ namespace AspectSwitcher
 
         public virtual SnapshotData CreateSnapshotData() => new();
 
-        protected virtual SnapshotData FindDataForState(AspectState state)
-        {
-            for (int i = 0; i < entries.Count; i++)
-                if (entries[i].states.Contains(state)) return entries[i].data;
-            return null;
-        }
-        public virtual SnapshotData GetDataAt(int index) => entries[index].data;
+        // Делаем метод абстрактным, чтобы базовый класс ОБЯЗАТЕЛЬНО запрашивал данные у наследника,
+        // у которого лежит правильный, сериализованный список entries.
+        protected abstract SnapshotData FindDataForState(AspectState state);
+        
+        public abstract SnapshotData GetDataAt(int index);
 
         protected virtual Component FindDefaultTarget() => null;
 
@@ -41,7 +36,6 @@ namespace AspectSwitcher
         private void Awake()
         {
             _currentAppliedState = null;
-            _switcher?.Register(this);
         }
 
         private void OnDestroy()
@@ -51,21 +45,17 @@ namespace AspectSwitcher
 
         private void OnEnable()
         {
-            if (!_workIfInactive)
-            {
-                _currentAppliedState = null;
-                _switcher?.Register(this);
-            }
-            
+            // Регистрация должна быть всегда здесь, чтобы гарантировать попадание в текущий активный свитчер
+            if (_switcher == null) _switcher = AspectRatioStateSwitcher.Instance;
+            _switcher?.Register(this);
+            _currentAppliedState = null;
         }
 
         private void OnDisable()
         {
-            if (!_workIfInactive)
-            {
-                _currentAppliedState = null;
-                _switcher?.Unregister(this);
-            }
+            _switcher?.Unregister(this);
+            _currentAppliedState = null;
+            
         }
 
         public void HandleStateChanged(IReadOnlyList<AspectState> matchingStates)
@@ -86,8 +76,7 @@ namespace AspectSwitcher
             var settings = ResolveTransition();
             if (_transitionCoroutine != null) StopCoroutine(_transitionCoroutine);
 
-            if (settings == null || settings.mode == TransitionMode.Instant ||
-                (!_workIfInactive && !gameObject.activeInHierarchy))
+            if (settings == null || settings.mode == TransitionMode.Instant || !gameObject.activeInHierarchy)
                 data.ApplyTo(target, null, 1f);
             else
                 _transitionCoroutine = StartCoroutine(TransitionCoroutine(data, settings));
@@ -129,7 +118,6 @@ namespace AspectSwitcher
             _currentAppliedState = state;
             data.ApplyTo(target, null, 1f);
         }
-
         public void ApplyStatesInstant(IReadOnlyList<AspectState> states)
         {
             for (int i = 0; i < states.Count; i++)

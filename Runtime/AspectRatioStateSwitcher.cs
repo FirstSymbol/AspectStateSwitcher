@@ -72,10 +72,10 @@ namespace AspectSwitcher
         private void EvaluateAndSwitch(bool forceApply = false)
         {
             if (config == null) return;
-
+            
             float aspect = AspectRatioMonitor.CurrentAspect;
             if (aspect <= 0f)
-                aspect = Screen.width > 0 ? (float)Screen.width / Screen.height : 1f;
+                aspect = AspectRatioMonitor.Camera.pixelWidth > 0 ? (float)AspectRatioMonitor.Camera.pixelWidth / AspectRatioMonitor.Camera.pixelHeight : 1f;
 
             var detected = config.FindState(aspect);
             if (detected == null) return;
@@ -122,7 +122,7 @@ namespace AspectSwitcher
 
             float aspect = AspectRatioMonitor.CurrentAspect;
             if (aspect <= 0f)
-                aspect = Screen.width > 0 ? (float)Screen.width / Screen.height : 1f;
+                aspect = AspectRatioMonitor.Camera.pixelWidth > 0 ? (float)AspectRatioMonitor.Camera.pixelWidth / AspectRatioMonitor.Camera.pixelHeight : 1f;
             config.GetMatchingStates(aspect, _matchingStates);
 
             NotifyContainers(state);

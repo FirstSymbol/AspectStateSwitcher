@@ -4,16 +4,21 @@ namespace AspectSwitcher
 {
     public abstract class AspectSnapshot<TData, TEntry> : AspectSnapshotBase where TData : SnapshotData, new() where TEntry : SnapshotEntry<TData>, new()
     {
-        public new List<TEntry> entries = new List<TEntry>();
+        public List<TEntry> entries = new List<TEntry>(); // Убрали 'new', теперь этот список единственный и верный
         
-        public new virtual TData CreateSnapshotData() => new();
+        public override SnapshotData CreateSnapshotData() => new();
 
-        protected new virtual TData FindDataForState(AspectState state)
+        // Теперь этот метод честно переопределяет базовый и вызывается из AspectSnapshotBase
+        protected override SnapshotData FindDataForState(AspectState state)
         {
             for (int i = 0; i < entries.Count; i++)
-                if (entries[i].states.Contains(state)) return entries[i].data;
+            {
+                if (entries[i] != null && entries[i].states != null && entries[i].states.Contains(state)) 
+                    return entries[i].data;
+            }
             return null;
         }
+
         public override SnapshotData GetDataAt(int index)
         {
             if (index < 0) return null;
@@ -30,6 +35,5 @@ namespace AspectSwitcher
     
             return entries[index].data;
         }
-        
     }
 }

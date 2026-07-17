@@ -20,14 +20,9 @@ namespace AspectSwitcher
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void DomainReset()
         {
-            Camera ??= Camera.main;
-            if (Camera == null)
-            {
-                Debug.LogWarning("No Camera found in your scene.");
-                return;
-            }
-            CurrentAspect   = 0f;
+            CurrentAspect = 0f;
             OnAspectChanged = null;
+            Camera = null;
 
             var loop = PlayerLoop.GetCurrentPlayerLoop();
             InjectIntoLoop(ref loop);
@@ -61,9 +56,11 @@ namespace AspectSwitcher
 
         private static void Tick()
         {
-            Camera ??= Camera.main;
             if (Camera == null)
-                return;
+            {
+                Camera = Camera.main;
+                if (Camera == null) return;
+            }
             if (Camera.pixelHeight == 0) return;
             float aspect = (float)Camera.pixelWidth / Camera.pixelHeight;
 
@@ -82,9 +79,11 @@ namespace AspectSwitcher
 
         public static void Initialize()
         {
-            Camera ??= Camera.main;
             if (Camera == null)
-                return;
+            {
+                Camera = Camera.main;
+                if (Camera == null) return;
+            }
             if (Camera.pixelHeight == 0) return;
             CurrentAspect = (float)Camera.pixelWidth / Camera.pixelHeight;
         }
