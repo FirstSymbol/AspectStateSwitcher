@@ -46,7 +46,7 @@ namespace AspectSwitcher
         private void OnEnable()
         {
             if (_switcher == null) _switcher = AspectRatioStateSwitcher.Instance;
-            if (!_workIfInactive)
+            if (_workIfInactive)
                 return;
             _switcher?.Register(this);
             _currentAppliedState = null;
@@ -54,7 +54,7 @@ namespace AspectSwitcher
 
         private void OnDisable()
         {
-            if (!_workIfInactive)
+            if (_workIfInactive)
                 return;
             _switcher?.Unregister(this);
             _currentAppliedState = null;
