@@ -16,6 +16,7 @@ namespace AspectSwitcher
 
             EditorGUI.BeginChangeCheck();
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_switcher"), new GUIContent("Switcher"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_workIfInactive"), new GUIContent("Work if GO is inactive"));
             if (EditorGUI.EndChangeCheck())
                 serializedObject.ApplyModifiedProperties();
 

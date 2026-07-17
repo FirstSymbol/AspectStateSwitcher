@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -8,7 +9,8 @@ namespace AspectSwitcher
     {
         [Tooltip("The switcher that drives this snapshot. Self-registers on Enable.")]
         [SerializeField] private AspectRatioStateSwitcher _switcher;
-
+        [SerializeField] private bool _workIfInactive = true;
+        
         public Component target;
         public TransitionSettings transitionOverride = new TransitionSettings();
 
@@ -29,16 +31,34 @@ namespace AspectSwitcher
             if (def != null) target = def;
         }
 
-        private void OnEnable()
+        private void Awake()
         {
             _currentAppliedState = null;
             _switcher?.Register(this);
         }
 
+        private void OnDestroy()
+        {
+            _switcher?.Unregister(this);
+        }
+
+        private void OnEnable()
+        {
+            if (!_workIfInactive)
+            {
+                _currentAppliedState = null;
+                _switcher?.Register(this);
+            }
+            
+        }
+
         private void OnDisable()
         {
-            _currentAppliedState = null;
-            _switcher?.Unregister(this);
+            if (!_workIfInactive)
+            {
+                _currentAppliedState = null;
+                _switcher?.Unregister(this);
+            }
         }
 
         public void HandleStateChanged(IReadOnlyList<AspectState> matchingStates)
@@ -59,7 +79,8 @@ namespace AspectSwitcher
             var settings = ResolveTransition();
             if (_transitionCoroutine != null) StopCoroutine(_transitionCoroutine);
 
-            if (settings == null || settings.mode == TransitionMode.Instant || !gameObject.activeInHierarchy)
+            if (settings == null || settings.mode == TransitionMode.Instant ||
+                (!_workIfInactive && !gameObject.activeInHierarchy))
                 data.ApplyTo(target, null, 1f);
             else
                 _transitionCoroutine = StartCoroutine(TransitionCoroutine(data, settings));
