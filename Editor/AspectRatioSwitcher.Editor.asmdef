@@ -2,7 +2,7 @@
     "name": "AspectRatioSwitcher.Editor",
     "rootNamespace": "",
     "references": [
-        "GUID:e42bd01ac98387e488725d2109f32d1c"
+        "AspectRatioSwitcher.Runtime"
     ],
     "includePlatforms": [
         "Editor"

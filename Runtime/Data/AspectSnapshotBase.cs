@@ -8,7 +8,8 @@ namespace AspectSwitcher
     {
         [Tooltip("The switcher that drives this snapshot. Self-registers on Enable.")]
         [SerializeField] private AspectRatioStateSwitcher _switcher;
-
+        [SerializeField] private bool _workIfInactive = true;
+        
         public Component target;
         public TransitionSettings transitionOverride = new TransitionSettings();
         
@@ -18,9 +19,7 @@ namespace AspectSwitcher
         private AspectState? _currentAppliedState;
 
         public virtual SnapshotData CreateSnapshotData() => new();
-
-        // Делаем метод абстрактным, чтобы базовый класс ОБЯЗАТЕЛЬНО запрашивал данные у наследника,
-        // у которого лежит правильный, сериализованный список entries.
+        
         protected abstract SnapshotData FindDataForState(AspectState state);
         
         public abstract SnapshotData GetDataAt(int index);
@@ -35,6 +34,7 @@ namespace AspectSwitcher
 
         private void Awake()
         {
+            _switcher?.Register(this);
             _currentAppliedState = null;
         }
 
@@ -45,14 +45,17 @@ namespace AspectSwitcher
 
         private void OnEnable()
         {
-            // Регистрация должна быть всегда здесь, чтобы гарантировать попадание в текущий активный свитчер
             if (_switcher == null) _switcher = AspectRatioStateSwitcher.Instance;
+            if (!_workIfInactive)
+                return;
             _switcher?.Register(this);
             _currentAppliedState = null;
         }
 
         private void OnDisable()
         {
+            if (!_workIfInactive)
+                return;
             _switcher?.Unregister(this);
             _currentAppliedState = null;
             
