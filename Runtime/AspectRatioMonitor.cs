@@ -11,6 +11,7 @@ namespace AspectSwitcher
         public static float CurrentAspect { get; private set; }
         public static event Action<float> OnAspectChanged;
         public static float Threshold = 0.01f;
+        public static Camera Camera = null;
 
         private struct AspectRatioMonitorUpdate { }
 
@@ -19,6 +20,12 @@ namespace AspectSwitcher
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void DomainReset()
         {
+            Camera ??= Camera.main;
+            if (Camera == null)
+            {
+                Debug.LogWarning("No Camera found in your scene.");
+                return;
+            }
             CurrentAspect   = 0f;
             OnAspectChanged = null;
 
@@ -55,8 +62,11 @@ namespace AspectSwitcher
 
         private static void Tick()
         {
-            if (Screen.height == 0) return;
-            float aspect = (float)Screen.width / Screen.height;
+            Camera ??= Camera.main;
+            if (Camera == null)
+                return;
+            if (Camera.pixelHeight == 0) return;
+            float aspect = (float)Camera.pixelWidth / Camera.pixelHeight;
 
             if (CurrentAspect == 0f)
             {
@@ -73,8 +83,11 @@ namespace AspectSwitcher
 
         public static void Initialize()
         {
-            if (Screen.height == 0) return;
-            CurrentAspect = (float)Screen.width / Screen.height;
+            Camera ??= Camera.main;
+            if (Camera == null)
+                return;
+            if (Camera.pixelHeight == 0) return;
+            CurrentAspect = (float)Camera.pixelWidth / Camera.pixelHeight;
         }
 
         public static void Reset() => CurrentAspect = 0f;
