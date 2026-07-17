@@ -2,7 +2,7 @@
     "name": "AspectRatioStateSwitcher.Editor",
     "rootNamespace": "",
     "references": [
-        "GUID:bde8814ade3a5254cbcbb9233a88513e"
+        "AspectRatioStateSwicher.Runtime"
     ],
     "includePlatforms": [
         "Android",
