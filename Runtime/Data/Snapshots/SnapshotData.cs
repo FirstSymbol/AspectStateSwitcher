@@ -1,7 +1,9 @@
+using System;
 using UnityEngine;
 
 namespace AspectSwitcher
 {
+    [Serializable]
     public class SnapshotData
     {
         public virtual void CaptureFrom(Component target){}

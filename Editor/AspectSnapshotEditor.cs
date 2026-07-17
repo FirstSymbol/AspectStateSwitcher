@@ -1,14 +1,41 @@
-using UnityEngine;
+using System;
+using System.Reflection;
 using UnityEditor;
+using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace AspectSwitcher
 {
     [CustomEditor(typeof(AspectSnapshotBase), true)]
     public class AspectSnapshotEditor : Editor
     {
+        private SerializedProperty _genericEntriesProperty;
         private AspectSnapshotBase _target;
 
-        private void OnEnable() => _target = (AspectSnapshotBase)target;
+        private void OnEnable()
+        {
+            _target = (AspectSnapshotBase)target;
+            if (target == null) return;
+
+            var targetType = target.GetType();
+            var genericEntriesField = GetGenericEntriesField(targetType);
+
+            if (genericEntriesField != null)
+                _genericEntriesProperty = serializedObject.FindProperty(genericEntriesField.Name);
+        }
+
+        private FieldInfo GetGenericEntriesField(Type type)
+        {
+            while (type != null && type != typeof(object))
+            {
+                if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(AspectSnapshot<,>))
+                    return type.GetField("entries",
+                        BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+                type = type.BaseType;
+            }
+
+            return null;
+        }
 
         public override void OnInspectorGUI()
         {
@@ -16,7 +43,8 @@ namespace AspectSwitcher
 
             EditorGUI.BeginChangeCheck();
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_switcher"), new GUIContent("Switcher"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_workIfInactive"), new GUIContent("Work if GO is inactive"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_workIfInactive"),
+                new GUIContent("Work if GO is inactive"));
             if (EditorGUI.EndChangeCheck())
                 serializedObject.ApplyModifiedProperties();
 
@@ -30,11 +58,9 @@ namespace AspectSwitcher
             }
 
             if (_target.Switcher.config == null)
-            {
                 EditorGUILayout.HelpBox(
                     "The assigned Switcher has no State Config. Add one to the Switcher first.",
                     MessageType.Warning);
-            }
 
             EditorGUILayout.Space(4f);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("target"));
@@ -43,14 +69,12 @@ namespace AspectSwitcher
             EditorGUILayout.Space(6f);
             EditorGUILayout.LabelField("State Entries", EditorStyles.boldLabel);
 
-            var entriesProp = serializedObject.FindProperty("entries");
-            int toDelete    = -1;
+            var entriesProp = _genericEntriesProperty;
+            var toDelete = -1;
 
-            for (int i = 0; i < entriesProp.arraySize; i++)
-            {
+            for (var i = 0; i < entriesProp.arraySize; i++)
                 if (!DrawEntry(entriesProp.GetArrayElementAtIndex(i), i))
                     toDelete = i;
-            }
 
             if (toDelete >= 0)
                 entriesProp.DeleteArrayElementAtIndex(toDelete);
@@ -59,20 +83,22 @@ namespace AspectSwitcher
             if (GUILayout.Button("+ Add Entry"))
             {
                 entriesProp.arraySize++;
-                var newElem    = entriesProp.GetArrayElementAtIndex(entriesProp.arraySize - 1);
+                var newElem = entriesProp.GetArrayElementAtIndex(entriesProp.arraySize - 1);
                 var statesProp = newElem.FindPropertyRelative("states");
                 statesProp.arraySize = 1;
                 statesProp.GetArrayElementAtIndex(0).intValue = 0;
             }
+
             if (GUILayout.Button("Capture All") && _target.target != null)
             {
                 serializedObject.ApplyModifiedProperties();
                 Undo.RecordObject(_target, "Capture All Snapshots");
-                for (int i = 0; i < entriesProp.arraySize; i++)
+                for (var i = 0; i < entriesProp.arraySize; i++)
                     _target.GetDataAt(i)?.CaptureFrom(_target.target);
                 EditorUtility.SetDirty(_target);
                 serializedObject.Update();
             }
+
             EditorGUILayout.EndHorizontal();
 
             serializedObject.ApplyModifiedProperties();
@@ -80,10 +106,19 @@ namespace AspectSwitcher
 
         private bool DrawEntry(SerializedProperty entry, int index)
         {
+            if (entry == null) return false;
+
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.BeginHorizontal();
 
             var statesProp = entry.FindPropertyRelative("states");
+            if (statesProp == null)
+            {
+                EditorGUILayout.HelpBox("Error: 'states' property not found.", MessageType.Error);
+                EditorGUILayout.EndHorizontal();
+                EditorGUILayout.EndVertical();
+                return true;
+            }
 
             if (statesProp.arraySize == 0)
             {
@@ -91,8 +126,8 @@ namespace AspectSwitcher
                 statesProp.GetArrayElementAtIndex(0).intValue = 0;
             }
 
-            int toRemoveState = -1;
-            for (int si = 0; si < statesProp.arraySize; si++)
+            var toRemoveState = -1;
+            for (var si = 0; si < statesProp.arraySize; si++)
             {
                 var sp = statesProp.GetArrayElementAtIndex(si);
                 sp.intValue = (int)(AspectState)EditorGUILayout.EnumPopup(
@@ -109,18 +144,31 @@ namespace AspectSwitcher
             }
 
             GUILayout.FlexibleSpace();
-            bool deleted = GUILayout.Button("✕", GUILayout.Width(22f));
+            var deleted = GUILayout.Button("✕", GUILayout.Width(22f));
             EditorGUILayout.EndHorizontal();
 
             if (toRemoveState >= 0)
                 statesProp.DeleteArrayElementAtIndex(toRemoveState);
 
-            if (deleted) { EditorGUILayout.EndVertical(); return false; }
+            if (deleted)
+            {
+                EditorGUILayout.EndVertical();
+                return false;
+            }
 
-            var dataProp = entry.FindPropertyRelative("data");
-            EditorGUI.indentLevel++;
-            EditorGUILayout.PropertyField(dataProp, new GUIContent("Data"), true);
-            EditorGUI.indentLevel--;
+            var dataProp = entry.FindPropertyRelative("_data");
+
+            if (dataProp != null)
+            {
+                EditorGUI.indentLevel++;
+                EditorGUILayout.PropertyField(dataProp, new GUIContent("Data"), true);
+                EditorGUI.indentLevel--;
+            }
+            else
+            {
+                EditorGUILayout.HelpBox($"Error: Serialized field '_data' not found in {entry.type}!",
+                    MessageType.Error);
+            }
 
             EditorGUILayout.BeginHorizontal();
             if (GUILayout.Button("Capture") && _target.target != null)
@@ -131,12 +179,14 @@ namespace AspectSwitcher
                 EditorUtility.SetDirty(_target);
                 serializedObject.Update();
             }
+
             if (GUILayout.Button("Preview") && _target.target != null)
             {
                 serializedObject.ApplyModifiedProperties();
-                Undo.RecordObjects(new UnityEngine.Object[] { _target, _target.target }, "Preview Snapshot");
+                Undo.RecordObjects(new Object[] { _target, _target.target }, "Preview Snapshot");
                 _target.GetDataAt(index).ApplyTo(_target.target, null, 1f);
             }
+
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.EndVertical();

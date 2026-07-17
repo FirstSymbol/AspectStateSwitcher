@@ -7,7 +7,6 @@ namespace AspectSwitcher
     [Serializable]
     public class UITransformSnapshotEntry : SnapshotEntry<UITransformData>
     {
-        public override UITransformData data { get; set; }
     }
     
     [AddComponentMenu("Aspect Switcher/Snapshots/UI Transform Snapshot")]

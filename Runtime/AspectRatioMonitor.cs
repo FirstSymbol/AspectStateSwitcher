@@ -42,8 +42,7 @@ namespace AspectSwitcher
 
                 ref var update = ref root.subSystemList[i];
                 var existing   = update.subSystemList ?? Array.Empty<PlayerLoopSystem>();
-
-                // Strip the stale entry left from the previous domain, then re-add.
+                
                 var rebuilt = new List<PlayerLoopSystem>(existing.Length + 1);
                 foreach (var s in existing)
                     if (s.type != typeof(AspectRatioMonitorUpdate))

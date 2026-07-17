@@ -7,7 +7,6 @@ namespace AspectSwitcher
     [Serializable]
     public class ComponentFieldSnapshotEntry : SnapshotEntry<ComponentFieldData>
     {
-        public override ComponentFieldData data { get; set; }
     }
     [AddComponentMenu("Aspect Switcher/Snapshots/Component Field Snapshot")]
     public sealed class ComponentFieldSnapshot : AspectSnapshot<ComponentFieldData, ComponentFieldSnapshotEntry>
