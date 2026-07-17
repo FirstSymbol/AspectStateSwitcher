@@ -92,7 +92,7 @@ namespace AspectSwitcher
                     if (c == null) continue;
                     EditorGUILayout.BeginHorizontal();
                     using (new EditorGUI.DisabledScope(true))
-                        EditorGUILayout.ObjectField(c, typeof(AspectSnapshot), true);
+                        EditorGUILayout.ObjectField(c, typeof(AspectSnapshotBase), true);
                     if (GUILayout.Button("→", GUILayout.Width(24f)))
                     {
                         Selection.activeGameObject = c.gameObject;
@@ -104,9 +104,9 @@ namespace AspectSwitcher
             }
         }
 
-        private Dictionary<string, List<AspectSnapshot>> GetSnapshotsGrouped()
+        private Dictionary<string, List<AspectSnapshotBase>> GetSnapshotsGrouped()
         {
-            var result = new Dictionary<string, List<AspectSnapshot>>();
+            var result = new Dictionary<string, List<AspectSnapshotBase>>();
 
             if (Application.isPlaying)
             {
@@ -114,18 +114,18 @@ namespace AspectSwitcher
                 {
                     if (kvp.Value.Count == 0) continue;
                     string key = kvp.Key.Name;
-                    result[key] = new List<AspectSnapshot>(kvp.Value);
+                    result[key] = new List<AspectSnapshotBase>(kvp.Value);
                 }
                 return result;
             }
 
-            var all = FindObjectsByType<AspectSnapshot>(FindObjectsInactive.Include);
+            var all = FindObjectsByType<AspectSnapshotBase>(FindObjectsInactive.Include);
             foreach (var c in all)
             {
                 if (c.Switcher != _target) continue;
                 string key = c.GetType().Name;
                 if (!result.TryGetValue(key, out var list))
-                    result[key] = list = new List<AspectSnapshot>();
+                    result[key] = list = new List<AspectSnapshotBase>();
                 list.Add(c);
             }
             return result;
@@ -140,7 +140,7 @@ namespace AspectSwitcher
 
             if (Application.isPlaying) { _target.ForceState(state); return; }
 
-            var all = FindObjectsByType<AspectSnapshot>(FindObjectsInactive.Include);
+            var all = FindObjectsByType<AspectSnapshotBase>(FindObjectsInactive.Include);
 
             var undoTargets = new List<UnityEngine.Object> { _target };
             foreach (var c in all)

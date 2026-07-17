@@ -6,7 +6,7 @@ namespace AspectSwitcher
 {
     [MovedFrom(true, sourceNamespace: "", sourceAssembly: null, sourceClassName: null)]
     [Serializable]
-    public class AnimatorParamData : ISnapshotData
+    public class AnimatorParamData : SnapshotData
     {
         public enum ParamType { Float, Int, Bool }
 
@@ -16,7 +16,7 @@ namespace AspectSwitcher
         public int       intValue;
         public bool      boolValue;
 
-        public void CaptureFrom(Component target)
+        public override void CaptureFrom(Component target)
         {
             if (!(target is Animator animator) || string.IsNullOrEmpty(paramName)) return;
             switch (paramType)
@@ -27,10 +27,10 @@ namespace AspectSwitcher
             }
         }
 
-        public void ApplyTo(Component target, ISnapshotData from, float t)
+        public override void ApplyTo(Component target, SnapshotData previousStateData, float t)
         {
             if (!(target is Animator animator) || string.IsNullOrEmpty(paramName)) return;
-            var f = from as AnimatorParamData;
+            var f = previousStateData as AnimatorParamData;
             switch (paramType)
             {
                 case ParamType.Float:

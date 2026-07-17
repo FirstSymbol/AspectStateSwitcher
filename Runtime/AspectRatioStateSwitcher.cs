@@ -27,8 +27,8 @@ namespace AspectSwitcher
         [Header("Events")]
         public AspectStateEvent onStateChanged;
 
-        private readonly Dictionary<Type, List<AspectSnapshot>> _containers
-            = new Dictionary<Type, List<AspectSnapshot>>();
+        private readonly Dictionary<Type, List<AspectSnapshotBase>> _containers
+            = new Dictionary<Type, List<AspectSnapshotBase>>();
 
         private readonly List<AspectState> _matchingStates = new List<AspectState>(8);
 
@@ -52,22 +52,22 @@ namespace AspectSwitcher
 
         private void HandleAspectChanged(float _) => EvaluateAndSwitch();
 
-        public void Register(AspectSnapshot c)
+        public void Register(AspectSnapshotBase c)
         {
             if (c == null) return;
             var key = c.GetType();
             if (!_containers.TryGetValue(key, out var list))
-                _containers[key] = list = new List<AspectSnapshot>();
+                _containers[key] = list = new List<AspectSnapshotBase>();
             if (!list.Contains(c)) list.Add(c);
         }
 
-        public void Unregister(AspectSnapshot c)
+        public void Unregister(AspectSnapshotBase c)
         {
             if (c != null && _containers.TryGetValue(c.GetType(), out var list))
                 list.Remove(c);
         }
 
-        public IReadOnlyDictionary<Type, List<AspectSnapshot>> RegisteredContainers => _containers;
+        public IReadOnlyDictionary<Type, List<AspectSnapshotBase>> RegisteredContainers => _containers;
 
         private void EvaluateAndSwitch(bool forceApply = false)
         {

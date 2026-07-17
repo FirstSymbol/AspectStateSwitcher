@@ -1,27 +1,34 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace AspectSwitcher
 {
-    public abstract class AspectSnapshot : MonoBehaviour
+    public abstract class AspectSnapshotBase : MonoBehaviour
     {
         [Tooltip("The switcher that drives this snapshot. Self-registers on Enable.")]
         [SerializeField] private AspectRatioStateSwitcher _switcher;
         [SerializeField] private bool _workIfInactive = true;
+
+        public List<SnapshotEntry<SnapshotData>> entries = new List<SnapshotEntry<SnapshotData>>();
         
         public Component target;
         public TransitionSettings transitionOverride = new TransitionSettings();
-
+        
         public AspectRatioStateSwitcher Switcher => _switcher;
 
         private Coroutine   _transitionCoroutine;
         private AspectState? _currentAppliedState;
 
-        public abstract ISnapshotData CreateSnapshotData();
-        protected abstract ISnapshotData FindDataForState(AspectState state);
-        public abstract ISnapshotData GetDataAt(int index);
+        public virtual SnapshotData CreateSnapshotData() => new();
+
+        protected virtual SnapshotData FindDataForState(AspectState state)
+        {
+            for (int i = 0; i < entries.Count; i++)
+                if (entries[i].states.Contains(state)) return entries[i].data;
+            return null;
+        }
+        public virtual SnapshotData GetDataAt(int index) => entries[index].data;
 
         protected virtual Component FindDefaultTarget() => null;
 
@@ -63,7 +70,7 @@ namespace AspectSwitcher
 
         public void HandleStateChanged(IReadOnlyList<AspectState> matchingStates)
         {
-            ISnapshotData data         = null;
+            SnapshotData data         = null;
             AspectState   appliedState = default;
 
             for (int i = 0; i < matchingStates.Count; i++)
@@ -93,7 +100,7 @@ namespace AspectSwitcher
             return _switcher?.globalTransition ?? AspectRatioStateSwitcher.Instance?.globalTransition;
         }
 
-        private IEnumerator TransitionCoroutine(ISnapshotData toData, TransitionSettings settings)
+        private IEnumerator TransitionCoroutine(SnapshotData toData, TransitionSettings settings)
         {
             var fromData = CreateSnapshotData();
             fromData?.CaptureFrom(target);
@@ -134,5 +141,20 @@ namespace AspectSwitcher
                 return;
             }
         }
+    }
+    public abstract class AspectSnapshot<TData, TEntry> : AspectSnapshotBase where TData : SnapshotData, new() where TEntry : SnapshotEntry<TData>
+    {
+        public new List<TEntry> entries = new List<TEntry>();
+        
+        public new virtual TData CreateSnapshotData() => new();
+
+        protected new virtual TData FindDataForState(AspectState state)
+        {
+            for (int i = 0; i < entries.Count; i++)
+                if (entries[i].states.Contains(state)) return entries[i].data;
+            return null;
+        }
+        public new virtual TData GetDataAt(int index) => entries[index].data;
+        
     }
 }

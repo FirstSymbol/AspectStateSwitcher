@@ -18,7 +18,7 @@ namespace AspectSwitcher
 
     [MovedFrom(true, sourceNamespace: "", sourceAssembly: null, sourceClassName: null)]
     [Serializable]
-    public class ComponentFieldData : ISnapshotData
+    public class ComponentFieldData : SnapshotData
     {
         public string               fieldPath;
         public SerializedValueWrapper value = new SerializedValueWrapper();
@@ -37,7 +37,7 @@ namespace AspectSwitcher
             return _cachedField;
         }
 
-        public void CaptureFrom(Component target)
+        public override void CaptureFrom(Component target)
         {
             var field = GetField(target);
             if (field == null) return;
@@ -48,11 +48,11 @@ namespace AspectSwitcher
             else if (raw is string s) { value.type = SerializedValueWrapper.FieldType.String; value.stringValue = s; }
         }
 
-        public void ApplyTo(Component target, ISnapshotData from, float t)
+        public override void ApplyTo(Component target, SnapshotData previousStateData, float t)
         {
             var field = GetField(target);
             if (field == null) return;
-            var f = from as ComponentFieldData;
+            var f = previousStateData as ComponentFieldData;
             switch (value.type)
             {
                 case SerializedValueWrapper.FieldType.Float:

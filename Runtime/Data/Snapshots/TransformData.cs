@@ -6,13 +6,13 @@ namespace AspectSwitcher
 {
     [MovedFrom(true, sourceNamespace: "", sourceAssembly: null, sourceClassName: null)]
     [Serializable]
-    public class TransformData : ISnapshotData
+    public class TransformData : SnapshotData
     {
         public Vector3    localPosition;
         public Quaternion localRotation;
         public Vector3    localScale;
 
-        public void CaptureFrom(Component target)
+        public override void CaptureFrom(Component target)
         {
             if (!(target is Transform tr)) return;
             localPosition = tr.localPosition;
@@ -20,10 +20,10 @@ namespace AspectSwitcher
             localScale    = tr.localScale;
         }
 
-        public void ApplyTo(Component target, ISnapshotData from, float t)
+        public override void ApplyTo(Component target, SnapshotData previousStateData, float t)
         {
             if (!(target is Transform tr)) return;
-            var f = from as TransformData;
+            var f = previousStateData as TransformData;
             if (f != null && t < 1f)
             {
                 tr.localPosition = Vector3.Lerp(f.localPosition, localPosition, t);

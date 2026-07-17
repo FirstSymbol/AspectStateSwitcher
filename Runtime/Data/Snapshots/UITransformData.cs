@@ -6,7 +6,7 @@ namespace AspectSwitcher
 {
     [MovedFrom(true, sourceNamespace: "", sourceAssembly: null, sourceClassName: null)]
     [Serializable]
-    public class UITransformData : ISnapshotData
+    public class UITransformData : SnapshotData
     {
         public Vector2 anchorMin;
         public Vector2 anchorMax;
@@ -14,7 +14,7 @@ namespace AspectSwitcher
         public Vector2 sizeDelta;
         public Vector2 pivot;
 
-        public void CaptureFrom(Component target)
+        public override void CaptureFrom(Component target)
         {
             if (!(target is RectTransform rt)) return;
             anchorMin        = rt.anchorMin;
@@ -24,10 +24,10 @@ namespace AspectSwitcher
             pivot            = rt.pivot;
         }
 
-        public void ApplyTo(Component target, ISnapshotData from, float t)
+        public override void ApplyTo(Component target, SnapshotData previousStateData, float t)
         {
             if (!(target is RectTransform rt)) return;
-            var f = from as UITransformData;
+            var f = previousStateData as UITransformData;
 
             if (f == null || t >= 1f)
             {

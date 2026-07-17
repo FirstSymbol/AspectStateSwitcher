@@ -3,12 +3,12 @@ using UnityEditor;
 
 namespace AspectSwitcher
 {
-    [CustomEditor(typeof(AspectSnapshot), true)]
+    [CustomEditor(typeof(AspectSnapshotBase), true)]
     public class AspectSnapshotEditor : Editor
     {
-        private AspectSnapshot _target;
+        private AspectSnapshotBase _target;
 
-        private void OnEnable() => _target = (AspectSnapshot)target;
+        private void OnEnable() => _target = (AspectSnapshotBase)target;
 
         public override void OnInspectorGUI()
         {

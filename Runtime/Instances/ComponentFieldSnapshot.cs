@@ -4,33 +4,13 @@ using UnityEngine;
 
 namespace AspectSwitcher
 {
-    [AddComponentMenu("Aspect Switcher/Snapshots/Component Field Snapshot")]
-    public sealed class ComponentFieldSnapshot : AspectSnapshot
+    [Serializable]
+    public class ComponentFieldSnapshotEntry : SnapshotEntry<ComponentFieldData>
     {
-        [Serializable]
-        public class Entry : ISerializationCallbackReceiver
-        {
-            [HideInInspector] public AspectState    state; // migrated to states on first load
-            public List<AspectState>    states = new List<AspectState>();
-            public ComponentFieldData   data   = new ComponentFieldData();
-
-            public void OnBeforeSerialize() { }
-            public void OnAfterDeserialize()
-            {
-                if (states.Count == 0)
-                    states.Add(state);
-            }
-        }
-
-        public List<Entry> entries = new List<Entry>();
-
-        public override ISnapshotData CreateSnapshotData()              => new ComponentFieldData();
-        public override ISnapshotData GetDataAt(int i)                   => entries[i].data;
-        protected override ISnapshotData FindDataForState(AspectState s)
-        {
-            for (int i = 0; i < entries.Count; i++)
-                if (entries[i].states.Contains(s)) return entries[i].data;
-            return null;
-        }
+        public override ComponentFieldData data { get; set; }
+    }
+    [AddComponentMenu("Aspect Switcher/Snapshots/Component Field Snapshot")]
+    public sealed class ComponentFieldSnapshot : AspectSnapshot<ComponentFieldData, ComponentFieldSnapshotEntry>
+    {
     }
 }
