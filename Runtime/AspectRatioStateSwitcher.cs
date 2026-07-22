@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.SceneManagement;
 
 namespace AspectSwitcher
 {
@@ -37,8 +38,16 @@ namespace AspectSwitcher
 
         private void Awake()
         {
+            SceneManager.sceneLoaded += SceneManagerOnsceneLoaded;
             Instance     = this;
             CurrentState = null;
+        }
+
+        private void SceneManagerOnsceneLoaded(Scene arg0, LoadSceneMode arg1)
+        {
+            var t = FindObjectsByType<AspectSnapshotBase>(FindObjectsInactive.Include);
+            foreach (var s in t) 
+                s.Init();
         }
 
         private void OnEnable()  => AspectRatioMonitor.OnAspectChanged += HandleAspectChanged;

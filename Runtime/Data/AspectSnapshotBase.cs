@@ -10,6 +10,9 @@ namespace AspectSwitcher
         [SerializeField] private AspectRatioStateSwitcher _switcher;
         [SerializeField] private bool _workIfInactive = true;
         
+        private bool _isInitialized = false;
+        public bool isInitialized => _isInitialized;
+        
         public Component target;
         public TransitionSettings transitionOverride = new TransitionSettings();
         
@@ -32,9 +35,16 @@ namespace AspectSwitcher
             if (def != null) target = def;
         }
 
+        public void Init()
+        {
+            if (_isInitialized) return;
+            _switcher?.Register(this);
+            _isInitialized = true;
+        }
+        
         private void Awake()
         {
-            _switcher?.Register(this);
+            Init();
             _currentAppliedState = null;
         }
 
