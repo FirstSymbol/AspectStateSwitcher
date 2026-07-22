@@ -9,7 +9,6 @@ namespace AspectSwitcher
     {
         [HideInInspector] public AspectState state;
         public List<AspectState> states = new List<AspectState>();
-        // Оставляем абстрактный доступ к данным для рантайм-кода
         public abstract SnapshotData BaseData { get; }
 
         public virtual void OnBeforeSerialize() { }
@@ -25,8 +24,6 @@ namespace AspectSwitcher
     {
         public TData _data;
         public TData data { get => _data; set => _data = value; }
-
-        // Реализуем базовый доступ
         public override SnapshotData BaseData => data;
     }
 }
