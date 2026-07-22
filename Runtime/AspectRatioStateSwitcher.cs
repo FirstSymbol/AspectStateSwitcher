@@ -73,9 +73,7 @@ namespace AspectSwitcher
         {
             if (config == null) return;
             
-            float aspect = AspectRatioMonitor.CurrentAspect;
-            if (aspect <= 0f)
-                aspect = AspectRatioMonitor.Camera.pixelWidth > 0 ? (float)AspectRatioMonitor.Camera.pixelWidth / AspectRatioMonitor.Camera.pixelHeight : 1f;
+            float aspect = GetCurrentAspect();
 
             var detected = config.FindState(aspect);
             if (detected == null) return;
@@ -120,12 +118,26 @@ namespace AspectSwitcher
             CurrentState  = state;
             _pendingState = null;
 
-            float aspect = AspectRatioMonitor.CurrentAspect;
-            if (aspect <= 0f)
-                aspect = AspectRatioMonitor.Camera.pixelWidth > 0 ? (float)AspectRatioMonitor.Camera.pixelWidth / AspectRatioMonitor.Camera.pixelHeight : 1f;
+            float aspect = GetCurrentAspect();
             config.GetMatchingStates(aspect, _matchingStates);
 
             NotifyContainers(state);
+        }
+
+        private static float GetCurrentAspect()
+        {
+            float aspect = AspectRatioMonitor.CurrentAspect;
+            if (aspect > 0f)
+                return aspect;
+
+            var camera = AspectRatioMonitor.Camera;
+            if (camera != null && camera.pixelHeight > 0)
+                return (float)camera.pixelWidth / camera.pixelHeight;
+
+            if (Screen.height > 0)
+                return (float)Screen.width / Screen.height;
+
+            return 1f;
         }
 
         private void CancelStabilization()
