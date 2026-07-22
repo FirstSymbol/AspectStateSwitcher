@@ -13,6 +13,7 @@ namespace AspectSwitcher
         public Vector2 anchoredPosition;
         public Vector2 sizeDelta;
         public Vector2 pivot;
+        public Vector3 localScale = Vector3.one;
 
         public override void CaptureFrom(Component target)
         {
@@ -22,6 +23,7 @@ namespace AspectSwitcher
             anchoredPosition = rt.anchoredPosition;
             sizeDelta        = rt.sizeDelta;
             pivot            = rt.pivot;
+            localScale = rt.localScale;
         }
 
         public override void ApplyTo(Component target, SnapshotData previousStateData, float t)
@@ -36,6 +38,7 @@ namespace AspectSwitcher
                 rt.pivot            = pivot;
                 rt.anchoredPosition = anchoredPosition;
                 rt.sizeDelta        = sizeDelta;
+                rt.localScale       = localScale;
                 return;
             }
 
@@ -44,6 +47,7 @@ namespace AspectSwitcher
             // the element to visually snap to the target before lerp finishes.
             rt.anchoredPosition = Vector2.Lerp(f.anchoredPosition, anchoredPosition, t);
             rt.sizeDelta        = Vector2.Lerp(f.sizeDelta,        sizeDelta,        t);
+            rt.localScale       = Vector3.Lerp(f.localScale,       localScale,       t);
         }
     }
 }
