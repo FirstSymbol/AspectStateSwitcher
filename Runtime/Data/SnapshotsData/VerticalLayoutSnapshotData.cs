@@ -6,9 +6,8 @@ using UnityEngine.UI;
 namespace UnityEngine.UI.Snapshots
 {
     [Serializable]
-    public class VerticalLayoutSnapshotData : SnapshotData
+    public class VerticalLayoutSnapshotData : AspectSwitcher.ComponentSnapshotData<VerticalLayoutGroup>
     {
-        public LayoutAction action = LayoutAction.Update;
 
         [Header("Layout Settings")]
         public RectOffset padding = new RectOffset();
@@ -29,7 +28,7 @@ namespace UnityEngine.UI.Snapshots
             var layout = target.gameObject.GetComponent<VerticalLayoutGroup>();
             if (layout != null)
             {
-                action = LayoutAction.Create;
+                action = LayoutAction.Update;
                 padding = CopyPadding(layout.padding);
                 spacing = layout.spacing;
                 childAlignment = layout.childAlignment;
@@ -47,38 +46,26 @@ namespace UnityEngine.UI.Snapshots
             }
         }
 
-        public override void ApplyTo(Component target, SnapshotData previousStateData, float t)
+        protected override void CreateComponent(Component target, SnapshotData previousStateData, float t)
         {
-            if (target == null) return;
             if (t < 1f) return;
+            var layout = target.gameObject.AddComponent<VerticalLayoutGroup>();
+            UpdateComponent(target, previousStateData, t, layout);
+        }
 
-            var go = target.gameObject;
-
-            if (action == LayoutAction.Remove)
-            {
-                var existing = go.GetComponent<VerticalLayoutGroup>();
-                if (existing != null)
-                    Object.DestroyImmediate(existing);
-                return;
-            }
-
-            var layout = go.GetComponent<VerticalLayoutGroup>();
-
-            if (layout == null && action != LayoutAction.Update)
-                layout = go.AddComponent<VerticalLayoutGroup>();
-
-            if (layout == null) return;
-
-            layout.padding = CopyPadding(padding);
-            layout.spacing = spacing;
-            layout.childAlignment = childAlignment;
-            layout.reverseArrangement = reverseArrangement;
-            layout.childForceExpandWidth = childForceExpandWidth;
-            layout.childForceExpandHeight = childForceExpandHeight;
-            layout.childControlWidth = childControlWidth;
-            layout.childControlHeight = childControlHeight;
-            layout.childScaleWidth = childScaleWidth;
-            layout.childScaleHeight = childScaleHeight;
+        protected override void UpdateComponent(Component target, SnapshotData previousStateData, float t, VerticalLayoutGroup component)
+        {
+            if (t < 1f) return;
+            component.padding = CopyPadding(padding);
+            component.spacing = spacing;
+            component.childAlignment = childAlignment;
+            component.reverseArrangement = reverseArrangement;
+            component.childForceExpandWidth = childForceExpandWidth;
+            component.childForceExpandHeight = childForceExpandHeight;
+            component.childControlWidth = childControlWidth;
+            component.childControlHeight = childControlHeight;
+            component.childScaleWidth = childScaleWidth;
+            component.childScaleHeight = childScaleHeight;
         }
 
         private static RectOffset CopyPadding(RectOffset source)

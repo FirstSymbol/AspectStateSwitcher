@@ -9,9 +9,8 @@ namespace UnityEngine.UI.Snapshots
     /// Snapshot data for AspectRatioFitter — create with params or remove.
     /// </summary>
     [Serializable]
-    public class AspectRatioFitterSnapshotData : SnapshotData
+    public class AspectRatioFitterSnapshotData : AspectSwitcher.ComponentSnapshotData<AspectRatioFitter>
     {
-        public LayoutAction action = LayoutAction.Update;
 
         public AspectRatioFitter.AspectMode aspectMode = AspectRatioFitter.AspectMode.None;
         public float aspectRatio = 1f;
@@ -23,7 +22,7 @@ namespace UnityEngine.UI.Snapshots
             var fitter = target.gameObject.GetComponent<AspectRatioFitter>();
             if (fitter != null)
             {
-                action = LayoutAction.Create;
+                action = LayoutAction.Update;
                 aspectMode = fitter.aspectMode;
                 aspectRatio = fitter.aspectRatio;
             }
@@ -33,30 +32,18 @@ namespace UnityEngine.UI.Snapshots
             }
         }
 
-        public override void ApplyTo(Component target, SnapshotData previousStateData, float t)
+        protected override void CreateComponent(Component target, SnapshotData previousStateData, float t)
         {
-            if (target == null) return;
             if (t < 1f) return;
+            var fitter = target.gameObject.AddComponent<AspectRatioFitter>();
+            UpdateComponent(target, previousStateData, t, fitter);
+        }
 
-            var go = target.gameObject;
-
-            if (action == LayoutAction.Remove)
-            {
-                var existing = go.GetComponent<AspectRatioFitter>();
-                if (existing != null)
-                    Object.DestroyImmediate(existing);
-                return;
-            }
-
-            var fitter = go.GetComponent<AspectRatioFitter>();
-
-            if (fitter == null && action != LayoutAction.Update)
-                fitter = go.AddComponent<AspectRatioFitter>();
-
-            if (fitter == null) return;
-
-            fitter.aspectMode = aspectMode;
-            fitter.aspectRatio = aspectRatio;
+        protected override void UpdateComponent(Component target, SnapshotData previousStateData, float t, AspectRatioFitter component)
+        {
+            if (t < 1f) return;
+            component.aspectMode = aspectMode;
+            component.aspectRatio = aspectRatio;
         }
     }
 }

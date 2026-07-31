@@ -10,9 +10,8 @@ namespace UnityEngine.UI.Snapshots
     /// Useful for overriding min/preferred/flexible sizes per aspect ratio.
     /// </summary>
     [Serializable]
-    public class LayoutElementSnapshotData : SnapshotData
+    public class LayoutElementSnapshotData : AspectSwitcher.ComponentSnapshotData<LayoutElement>
     {
-        public LayoutAction action = LayoutAction.Update;
 
         public bool ignoreLayout;
         public float minWidth = -1;
@@ -30,7 +29,7 @@ namespace UnityEngine.UI.Snapshots
             var le = target.gameObject.GetComponent<LayoutElement>();
             if (le != null)
             {
-                action = LayoutAction.Create;
+                action = LayoutAction.Update;
                 ignoreLayout = le.ignoreLayout;
                 minWidth = le.minWidth;
                 minHeight = le.minHeight;
@@ -46,36 +45,24 @@ namespace UnityEngine.UI.Snapshots
             }
         }
 
-        public override void ApplyTo(Component target, SnapshotData previousStateData, float t)
+        protected override void CreateComponent(Component target, SnapshotData previousStateData, float t)
         {
-            if (target == null) return;
             if (t < 1f) return;
+            var le = target.gameObject.AddComponent<LayoutElement>();
+            UpdateComponent(target, previousStateData, t, le);
+        }
 
-            var go = target.gameObject;
-
-            if (action == LayoutAction.Remove)
-            {
-                var existing = go.GetComponent<LayoutElement>();
-                if (existing != null)
-                    Object.DestroyImmediate(existing);
-                return;
-            }
-
-            var le = go.GetComponent<LayoutElement>();
-
-            if (le == null && action != LayoutAction.Update)
-                le = go.AddComponent<LayoutElement>();
-
-            if (le == null) return;
-
-            le.ignoreLayout = ignoreLayout;
-            le.minWidth = minWidth;
-            le.minHeight = minHeight;
-            le.preferredWidth = preferredWidth;
-            le.preferredHeight = preferredHeight;
-            le.flexibleWidth = flexibleWidth;
-            le.flexibleHeight = flexibleHeight;
-            le.layoutPriority = layoutPriority;
+        protected override void UpdateComponent(Component target, SnapshotData previousStateData, float t, LayoutElement component)
+        {
+            if (t < 1f) return;
+            component.ignoreLayout = ignoreLayout;
+            component.minWidth = minWidth;
+            component.minHeight = minHeight;
+            component.preferredWidth = preferredWidth;
+            component.preferredHeight = preferredHeight;
+            component.flexibleWidth = flexibleWidth;
+            component.flexibleHeight = flexibleHeight;
+            component.layoutPriority = layoutPriority;
         }
     }
 }

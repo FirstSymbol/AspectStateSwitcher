@@ -1,12 +1,16 @@
-﻿using System;
+using System;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.UI.Snapshots;
+using Object = UnityEngine.Object; // Added for LayoutAction
 
 namespace AspectSwitcher
 {
     [Serializable]
-    public class HorizontalOrVerticalLayoutGroupData : SnapshotData
+    public class HorizontalOrVerticalLayoutGroupData : AspectSwitcher.ComponentSnapshotData<HorizontalOrVerticalLayoutGroup>
     {
+        public bool isHorizontal = true; // Added to distinguish layout types when creating
+
         public RectOffset padding = new RectOffset();
         public float spacing = 0;
         public TextAnchor childAlignment = TextAnchor.UpperLeft;
@@ -17,29 +21,53 @@ namespace AspectSwitcher
         public bool childControlHeight = true;
         public bool childScaleWidth = false;
         public bool childScaleHeight = false;
+
         public override void CaptureFrom(Component target)
         {
-            if (!(target is HorizontalOrVerticalLayoutGroup layoutGroup)) return;
-            padding =  layoutGroup.padding;
-            spacing = layoutGroup.spacing;
-            childAlignment = layoutGroup.childAlignment;
-            childForceExpandWidth = layoutGroup.childForceExpandWidth;
-            childForceExpandHeight = layoutGroup.childForceExpandHeight;
-            childControlWidth = layoutGroup.childControlWidth;
-            childControlHeight = layoutGroup.childControlHeight;
-            childScaleWidth = layoutGroup.childScaleWidth;
-            childScaleHeight = layoutGroup.childScaleHeight;
+            if (target == null) return;
+            
+            var layoutGroup = target.gameObject.GetComponent<HorizontalOrVerticalLayoutGroup>();
+            if (layoutGroup != null)
+            {
+                action = LayoutAction.Update;
+                isHorizontal = layoutGroup is HorizontalLayoutGroup;
+                padding = CopyPadding(layoutGroup.padding);
+                spacing = layoutGroup.spacing;
+                childAlignment = layoutGroup.childAlignment;
+                reverseArrangement = layoutGroup.reverseArrangement;
+                childForceExpandWidth = layoutGroup.childForceExpandWidth;
+                childForceExpandHeight = layoutGroup.childForceExpandHeight;
+                childControlWidth = layoutGroup.childControlWidth;
+                childControlHeight = layoutGroup.childControlHeight;
+                childScaleWidth = layoutGroup.childScaleWidth;
+                childScaleHeight = layoutGroup.childScaleHeight;
+            }
+            else
+            {
+                action = LayoutAction.Remove;
+            }
         }
 
-        public override void ApplyTo(Component target, SnapshotData previousStateData, float t)
+        protected override void CreateComponent(Component target, SnapshotData previousStateData, float t)
         {
-            if (!(target is HorizontalOrVerticalLayoutGroup layoutGroup)) return;
+            HorizontalOrVerticalLayoutGroup layoutGroup;
+            if (isHorizontal)
+                layoutGroup = target.gameObject.AddComponent<HorizontalLayoutGroup>();
+            else
+                layoutGroup = target.gameObject.AddComponent<VerticalLayoutGroup>();
+                
+            UpdateComponent(target, previousStateData, t, layoutGroup);
+        }
+
+        protected override void UpdateComponent(Component target, SnapshotData previousStateData, float t, HorizontalOrVerticalLayoutGroup layoutGroup)
+        {
             var previousLayoutData = previousStateData as HorizontalOrVerticalLayoutGroupData;
             if (previousLayoutData == null || t >= 1f)
             {
-                layoutGroup.padding =  padding;
+                layoutGroup.padding = CopyPadding(padding);
                 layoutGroup.spacing = spacing;
                 layoutGroup.childAlignment = childAlignment;
+                layoutGroup.reverseArrangement = reverseArrangement;
                 layoutGroup.childForceExpandWidth = childForceExpandWidth;
                 layoutGroup.childForceExpandHeight = childForceExpandHeight;
                 layoutGroup.childControlWidth = childControlWidth;
@@ -54,6 +82,13 @@ namespace AspectSwitcher
             layoutGroup.padding.left = (int)Mathf.Lerp(previousLayoutData.padding.left, padding.left, t);
             layoutGroup.padding.right = (int)Mathf.Lerp(previousLayoutData.padding.right, padding.right, t);
             layoutGroup.padding.top = (int)Mathf.Lerp(previousLayoutData.padding.top, padding.top, t);
+        }
+
+        private static RectOffset CopyPadding(RectOffset source)
+        {
+            return source == null
+                ? new RectOffset()
+                : new RectOffset(source.left, source.right, source.top, source.bottom);
         }
     }
 }

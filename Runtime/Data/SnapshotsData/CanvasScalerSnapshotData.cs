@@ -6,9 +6,8 @@ using UnityEngine.UI;
 namespace UnityEngine.UI.Snapshots
 {
     [Serializable]
-    public class CanvasScalerSnapshotData : SnapshotData
+    public class CanvasScalerSnapshotData : AspectSwitcher.ComponentSnapshotData<CanvasScaler>
     {
-        public LayoutAction action = LayoutAction.Update;
 
         public CanvasScaler.ScaleMode uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
         public float scaleFactor = 1f;
@@ -46,28 +45,16 @@ namespace UnityEngine.UI.Snapshots
             }
         }
 
-        public override void ApplyTo(Component target, SnapshotData previousStateData, float t)
+        protected override void CreateComponent(Component target, SnapshotData previousStateData, float t)
         {
-            if (target == null) return;
             if (t < 1f) return;
+            var component = target.gameObject.AddComponent<CanvasScaler>();
+            UpdateComponent(target, previousStateData, t, component);
+        }
 
-            var go = target.gameObject;
-
-            if (action == LayoutAction.Remove)
-            {
-                var existing = go.GetComponent<CanvasScaler>();
-                if (existing != null)
-                    Object.DestroyImmediate(existing);
-                return;
-            }
-
-            var component = go.GetComponent<CanvasScaler>();
-
-            if (component == null && action != LayoutAction.Update)
-                component = go.AddComponent<CanvasScaler>();
-
-            if (component == null) return;
-
+        protected override void UpdateComponent(Component target, SnapshotData previousStateData, float t, CanvasScaler component)
+        {
+            if (t < 1f) return;
             component.uiScaleMode = uiScaleMode;
             component.scaleFactor = scaleFactor;
             component.referencePixelsPerUnit = referencePixelsPerUnit;

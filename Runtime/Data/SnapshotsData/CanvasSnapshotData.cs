@@ -5,9 +5,8 @@ using UnityEngine;
 namespace UnityEngine.UI.Snapshots
 {
     [Serializable]
-    public class CanvasSnapshotData : SnapshotData
+    public class CanvasSnapshotData : AspectSwitcher.ComponentSnapshotData<Canvas>
     {
-        public LayoutAction action = LayoutAction.Update;
 
         public RenderMode renderMode = RenderMode.ScreenSpaceOverlay;
         public bool pixelPerfect = false;
@@ -39,28 +38,16 @@ namespace UnityEngine.UI.Snapshots
             }
         }
 
-        public override void ApplyTo(Component target, SnapshotData previousStateData, float t)
+        protected override void CreateComponent(Component target, SnapshotData previousStateData, float t)
         {
-            if (target == null) return;
             if (t < 1f) return;
+            var component = target.gameObject.AddComponent<Canvas>();
+            UpdateComponent(target, previousStateData, t, component);
+        }
 
-            var go = target.gameObject;
-
-            if (action == LayoutAction.Remove)
-            {
-                var existing = go.GetComponent<Canvas>();
-                if (existing != null)
-                    Object.DestroyImmediate(existing);
-                return;
-            }
-
-            var component = go.GetComponent<Canvas>();
-
-            if (component == null && action != LayoutAction.Update)
-                component = go.AddComponent<Canvas>();
-
-            if (component == null) return;
-
+        protected override void UpdateComponent(Component target, SnapshotData previousStateData, float t, Canvas component)
+        {
+            if (t < 1f) return;
             component.renderMode = renderMode;
             component.pixelPerfect = pixelPerfect;
             component.sortingOrder = sortingOrder;

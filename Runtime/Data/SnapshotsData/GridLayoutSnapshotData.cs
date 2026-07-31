@@ -6,9 +6,8 @@ using UnityEngine.UI;
 namespace UnityEngine.UI.Snapshots
 {
     [Serializable]
-    public class GridLayoutSnapshotData : SnapshotData
+    public class GridLayoutSnapshotData : AspectSwitcher.ComponentSnapshotData<GridLayoutGroup>
     {
-        public LayoutAction action = LayoutAction.Update;
 
         [Header("Grid Settings")]
         public Vector2 cellSize = new Vector2(100f, 100f);
@@ -27,7 +26,7 @@ namespace UnityEngine.UI.Snapshots
             var grid = target.gameObject.GetComponent<GridLayoutGroup>();
             if (grid != null)
             {
-                action = LayoutAction.Create;
+                action = LayoutAction.Update;
                 cellSize = grid.cellSize;
                 spacing = grid.spacing;
                 padding = CopyPadding(grid.padding);
@@ -43,36 +42,24 @@ namespace UnityEngine.UI.Snapshots
             }
         }
 
-        public override void ApplyTo(Component target, SnapshotData previousStateData, float t)
+        protected override void CreateComponent(Component target, SnapshotData previousStateData, float t)
         {
-            if (target == null) return;
             if (t < 1f) return;
+            var grid = target.gameObject.AddComponent<GridLayoutGroup>();
+            UpdateComponent(target, previousStateData, t, grid);
+        }
 
-            var go = target.gameObject;
-
-            if (action == LayoutAction.Remove)
-            {
-                var existing = go.GetComponent<GridLayoutGroup>();
-                if (existing != null)
-                    Object.DestroyImmediate(existing);
-                return;
-            }
-
-            var grid = go.GetComponent<GridLayoutGroup>();
-
-            if (grid == null && action != LayoutAction.Update)
-                grid = go.AddComponent<GridLayoutGroup>();
-
-            if (grid == null) return;
-
-            grid.cellSize = cellSize;
-            grid.spacing = spacing;
-            grid.padding = CopyPadding(padding);
-            grid.startCorner = startCorner;
-            grid.startAxis = startAxis;
-            grid.childAlignment = childAlignment;
-            grid.constraint = constraint;
-            grid.constraintCount = Mathf.Max(1, constraintCount);
+        protected override void UpdateComponent(Component target, SnapshotData previousStateData, float t, GridLayoutGroup component)
+        {
+            if (t < 1f) return;
+            component.cellSize = cellSize;
+            component.spacing = spacing;
+            component.padding = CopyPadding(padding);
+            component.startCorner = startCorner;
+            component.startAxis = startAxis;
+            component.childAlignment = childAlignment;
+            component.constraint = constraint;
+            component.constraintCount = Mathf.Max(1, constraintCount);
         }
 
         private static RectOffset CopyPadding(RectOffset source)

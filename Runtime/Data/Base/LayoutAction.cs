@@ -1,4 +1,4 @@
-﻿namespace UnityEngine.UI.Snapshots
+﻿namespace AspectSwitcher
 {
     public enum LayoutAction
     {
