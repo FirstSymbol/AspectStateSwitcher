@@ -1,10 +1,12 @@
 ﻿using System;
-using UnityEngine;
+using AspectSwitcher;
+using UnityEngine.Scripting.APIUpdating;
 
-namespace AspectSwitcher
+namespace UnityEngine.UI.Snapshots
 {
     [Serializable]
-    public class GOSetActiveData : SnapshotData
+    [MovedFrom(true, sourceNamespace: null, sourceAssembly: null, sourceClassName: "GOSetActiveData")]
+    public class GameObjectActiveData : SnapshotData
     {
         public bool active;
         public override void CaptureFrom(Component target)
