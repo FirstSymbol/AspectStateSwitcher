@@ -12,6 +12,7 @@ namespace AspectSwitcher
         
         private bool _isInitialized = false;
         public bool isInitialized => _isInitialized;
+        public bool workIfInactive => _workIfInactive;
         
         public Component target;
         public TransitionSettings transitionOverride = new TransitionSettings();

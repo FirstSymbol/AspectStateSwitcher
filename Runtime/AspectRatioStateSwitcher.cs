@@ -48,6 +48,7 @@ namespace AspectSwitcher
             var t = FindObjectsByType<AspectSnapshotBase>(FindObjectsInactive.Include);
             foreach (var s in t) 
                 s.Init();
+            HandleAspectChanged(AspectRatioMonitor.CurrentAspect);
         }
 
         private void OnEnable()  => AspectRatioMonitor.OnAspectChanged += HandleAspectChanged;
@@ -63,7 +64,7 @@ namespace AspectSwitcher
 
         public void Register(AspectSnapshotBase c)
         {
-            if (c == null) return;
+            if (c == null || (!c.gameObject.activeInHierarchy && !c.workIfInactive)) return;
             var key = c.GetType();
             if (!_containers.TryGetValue(key, out var list))
                 _containers[key] = list = new List<AspectSnapshotBase>();

@@ -8,12 +8,14 @@ namespace AspectSwitcher
     [Serializable]
     public class SerializedValueWrapper
     {
-        public enum FieldType { Float, Int, Bool, String }
+        public enum FieldType { Float, Int, Bool, String, Vector2, Vector3 }
         public FieldType type;
         public float     floatValue;
         public int       intValue;
         public bool      boolValue;
         public string    stringValue;
+        public Vector2    vector2Value;
+        public Vector3    vector3Value;
     }
 
     [MovedFrom(true, sourceNamespace: "", sourceAssembly: null, sourceClassName: null)]
@@ -46,6 +48,8 @@ namespace AspectSwitcher
             else if (raw is int i)    { value.type = SerializedValueWrapper.FieldType.Int;    value.intValue    = i; }
             else if (raw is bool b)   { value.type = SerializedValueWrapper.FieldType.Bool;   value.boolValue   = b; }
             else if (raw is string s) { value.type = SerializedValueWrapper.FieldType.String; value.stringValue = s; }
+            else if (raw is Vector2 v2) { value.type = SerializedValueWrapper.FieldType.Vector2; value.vector2Value = v2; }
+            else if (raw is Vector3 v3) { value.type = SerializedValueWrapper.FieldType.Vector3; value.vector3Value = v3; }
         }
 
         public override void ApplyTo(Component target, SnapshotData previousStateData, float t)
@@ -68,6 +72,12 @@ namespace AspectSwitcher
                     break;
                 case SerializedValueWrapper.FieldType.String:
                     field.SetValue(target, value.stringValue);
+                    break;
+                case SerializedValueWrapper.FieldType.Vector2:
+                    field.SetValue(target, value.vector2Value);
+                    break;
+                case SerializedValueWrapper.FieldType.Vector3:
+                    field.SetValue(target, value.vector3Value);
                     break;
             }
         }
