@@ -1,225 +1,132 @@
-# AspectRatioStateSwitcher
+# Aspect Ratio Switcher
 
-A Unity plugin for defining named states and automatically switching between them when the screen aspect ratio changes. Useful for supporting multiple layouts — portrait, landscape, tablet, ultrawide — without writing any switch logic by hand.
+Responsive layouts for Unity by aspect ratio. Describe aspect states once in a profile, then let objects store
+per-state values (position, size, layout settings, text size, active state...) and switch between them
+automatically — with tweened transitions, Edit Mode preview and a record mode that captures your edits.
 
----
+- **Data-driven states** — named states with colors and ranges in an `AspectProfile` asset; no code changes to add one.
+- **Smart matching** — states may overlap; the narrowest matching state wins and broader states are fallbacks.
+- **One component per object** — `AspectResponsive` holds any number of modules; each module stores a value per state.
+- **Works with prefabs** — components connect to the switcher in their parents or to the main switcher automatically.
+- **Editor tooling** — profile diagram with draggable ranges, state chips, capture/apply, revertible scene preview,
+  REC mode, Scene View overlay, overview matrix.
+- No third-party dependencies (uGUI and TextMeshPro from `com.unity.ugui`).
 
-## How it works
+## Installation
 
-You define states in a **config asset** and assign aspect ratio ranges to each. The **Switcher** monitors the screen every frame and notifies registered **Snapshots** when the active state changes. Each Snapshot is a separate MonoBehaviour component that stores the values of one target component for every state and applies the correct one on switch.
+Package Manager → *Add package from git URL* → the repository URL, or copy the folder into `Assets/` or `Packages/`.
 
-```
-AspectStateConfig
-  Portrait  [-∞ → 0.75]
-  Tall      [0.75 → 1.0]
-  Compact   [1.0 → 1.333]
-  Landscape [1.333 → 1.78]
-  Wide      [1.78 → +∞]
+## Quick start
 
-AspectRatioStateSwitcher  ← one per scene
-  config → AspectStateConfig
+1. **Create a profile** — *Create → Aspect Ratio Switcher → Aspect Profile*. It starts with a default set of states:
 
-UITransformSnapshot       ← one per object that reacts
-  switcher → AspectRatioStateSwitcher  (self-registers on Enable)
-  target   → RectTransform
-  entries:
-    Portrait  Tall → anchoredPos (0, -300), sizeDelta (400, 200)
-    Landscape      → anchoredPos (200, 0),  sizeDelta (600, 80)
-```
+   | State | Range | Typical device |
+   | --- | --- | --- |
+   | Portrait | < 0.75 | phone, portrait |
+   | Tall | 0.75 – 1 | tablet, portrait |
+   | Compact | 1 – 1.34 | tablet, landscape |
+   | Landscape | 1.34 – 1.78 | laptop / 16:10 / 16:9 |
+   | Wide | ≥ 1.78 | phone landscape, ultrawide |
+   | Any Portrait | < 1 | fallback |
+   | Tablet | 0.75 – 1.34 | fallback |
+   | Any Landscape | ≥ 1 | fallback |
 
----
+2. **Add an `AspectSwitcher`** to a scene object (usually the Canvas) and assign the profile.
+3. **Add `AspectResponsive`** to an object, press **+ Add Module** (modules for components on the object are suggested).
+4. **Select a state chip, arrange the object, press Capture** (or turn on **● REC** and just edit — every change of a
+   module target is stored in the selected state). Repeat for other states.
+5. Press **Play** and resize the Game view, or use **Preview** in the switcher / Scene View overlay in Edit Mode.
 
-## Setup
+A demo scene lives in this repository's host project (`Assets/Scenes/AspectSwitcherDemo.unity`): a header, a sidebar
+shown only in landscape, a bottom navigation shown only in portrait and a card grid with 2/3/4 columns.
 
-### 1 — Create a State Config
+## Matching rules
 
-Right-click in the Project window → **Create → ARSS → Aspect State Config**.
+The active states for an aspect are all states whose range contains it, ordered from the most specific:
+a range contained in another one wins, otherwise the narrower range wins, otherwise profile order.
+Each module uses the **first active state it has a value for**. So with values for *Any Landscape* and *Wide*,
+a 21:9 screen uses *Wide* and a 16:9 screen uses *Any Landscape*. A module without a value for any active state
+leaves its target untouched.
 
-A new asset is pre-populated with the full default state set. Open it to adjust ranges.
+Ranges are half-open: `min ≤ aspect < max` where aspect = width / height.
 
-Each state has a **name**, an **aspect ratio range**, and a **visibility checkbox** that toggles whether it is shown on the diagram strip.
+## Components
 
-| State | Min | Max | Covers |
-|---|---|---|---|
-| `Portrait` | -∞ | 0.75 | Narrow portrait phones (9:16 and narrower) |
-| `Tall` | 0.75 | 1.0 | Portrait tablets, wide phones (3:4 – 1:1) |
-| `Compact` | 1.0 | 1.333 | Squarish landscape (1:1 – 4:3) |
-| `Tablet` | 0.75 | 1.333 | Any tablet ratio — compound of Tall + Compact |
-| `PortraitTall` | -∞ | 1.0 | Everything portrait — compound of Portrait + Tall |
-| `CompactLandscape` | 1.0 | 1.78 | Not portrait, not ultra-wide — compound of Compact + Landscape |
-| `Landscape` | 1.333 | 1.78 | Standard landscape (4:3 – 16:9) |
-| `Wide` | 1.78 | +∞ | Ultra-wide, desktop (16:9+) |
+### AspectSwitcher
 
-**Precise states** (Portrait, Tall, Compact, Landscape, Wide) form non-overlapping bands. **Compound states** (Tablet, PortraitTall, CompactLandscape) span multiple bands — use them in snapshots when several adjacent states should share the same data.
-
-The range diagram at the top of the asset inspector shows all visible states at a glance. Uncheck the checkbox next to a state to hide it from the diagram without removing it from the config.
-
-> **Priority:** if ranges overlap, the first matching state in the list wins. Compound states placed below precise states get picked up when no precise entry exists in a snapshot.
-
----
-
-### 2 — Add AspectRatioStateSwitcher to the scene
-
-Add the component to any persistent GameObject (e.g. UIManager).
-
-| Field | Description |
-|-------|-------------|
-| **State Config** | The config asset you created |
-| **Global Transition** | Default transition applied to all snapshots |
-| **State Stabilization** | Seconds the new state must hold before switching (prevents flicker at boundaries) |
-| **Apply On Start** | Immediately apply the correct state on scene load |
-| **On State Changed** | UnityEvent fired with the new `AspectState` value |
-
-The inspector also shows all registered snapshots grouped by type, with a button to ping each one.
-
-**Preview State** buttons apply snapshots in Edit Mode without entering Play Mode. Clicking a state activates it along with all states whose ranges are fully contained within it — e.g. clicking `CompactLandscape` also applies `Compact` and `Landscape` entries.
-
----
-
-### 3 — Add a Snapshot component to each reacting object
-
-Add a snapshot component (e.g. **UITransformSnapshot**) to a GameObject that should change its appearance or values on aspect ratio switch. Find them via **Add Component → Aspect Switcher → Snapshots**.
-
-| Field | Description |
-|-------|-------------|
-| **Switcher** | The `AspectRatioStateSwitcher` in the scene — the snapshot self-registers on Enable |
-| **Target** | Component to read from / write to (auto-filled on Add Component) |
-| **Transition Override** | Per-snapshot transition that overrides the global one |
-| **State Entries** | One or more entries — each stores snapshot data for one or more states |
-
-**To set up entries:**
-1. Set the **Switcher** reference and confirm the **Target** is correct.
-2. Click **+ Add Entry**. The entry shows a state dropdown and a **+ State** button.
-3. Add as many states as needed to the entry — all of them will use the same data.
-4. Position or configure the object as it should look in those states.
-5. Click **Capture** on the entry — this saves the current values.
-6. Repeat for each distinct visual state.
-7. Use **Preview** to apply a single entry in Edit Mode. **Capture All** saves all entries at once.
-
-> There is no manual list to maintain. A snapshot self-registers with its Switcher in `OnEnable` and unregisters in `OnDisable`.
-
----
-
-## Multiple states per entry
-
-An entry can map several states to the same data, avoiding duplicate entries when adjacent states should look identical:
-
-```
-Entry 1:  Portrait  Tall  →  anchoredPos (0, -300)
-Entry 2:  Compact         →  anchoredPos (100, 0)
-Entry 3:  Landscape Wide  →  anchoredPos (200, 0)
-```
-
-Alternatively, use a compound state (`PortraitTall`, `Tablet`, `CompactLandscape`) as a single entry that covers a broader range without listing individual states.
-
----
-
-## Matching logic
-
-When the aspect ratio changes the Switcher builds the list of **all** config states whose ranges include the current aspect, in config priority order. Each snapshot finds the first state from that list for which it has an entry and applies it. If the resolved state has not changed since the last switch, the snapshot does nothing.
-
-This means a snapshot with an entry for `Landscape` will correctly activate even if a compound state like `CompactLandscape` is first in the config — the Switcher passes the full list and the snapshot finds `Landscape` as its first match.
-
----
-
-## Snapshot types
-
-| Component | Target | What is stored | Lerp support |
-|-----------|--------|----------------|--------------|
-| **UITransformSnapshot** | `RectTransform` | anchoredPosition, sizeDelta, anchorMin/Max, pivot | Position + size |
-| **TransformSnapshot** | `Transform` | localPosition, localRotation, localScale | Full |
-| **CanvasGroupSnapshot** | `CanvasGroup` | alpha, interactable, blocksRaycasts | Alpha only |
-| **AnimatorParamSnapshot** | `Animator` | float / int / bool parameter | Float only |
-| **ComponentFieldSnapshot** | Any `Component` | One public or private field (float/int/bool/string) | float + int |
-
-> **UITransform note:** anchors and pivot are applied instantly even in Lerp mode. Lerping anchors while simultaneously lerping `anchoredPosition` causes layout feedback and visual jumps.
-
-> **ComponentField note:** uses reflection at runtime. In IL2CPP builds, mark the target field with `[Preserve]`.
-
----
-
-## Transitions
-
-Set `mode` in **Global Transition** (on Switcher) or **Transition Override** (on Snapshot):
-
-| Mode | Behaviour |
-|------|-----------|
-| **Instant** | Values snap immediately on state change (default) |
-| **Lerp** | Linearly interpolates from the current value to the target over `Duration` seconds |
-| **AnimationCurve** | Same as Lerp but `t` is remapped through the curve |
-
-The override on a Snapshot takes effect only when its `mode` is not `Instant`. Otherwise the global setting is used.
-
-If a new state arrives while a transition is already running, the current (mid-transition) values are captured as the new starting point — no pop.
-
----
-
-## States enum
-
-States are defined in `AspectState.cs` (inside the plugin's Runtime folder):
+| Setting | Description |
+| --- | --- |
+| Profile | States to resolve. |
+| Source | `Screen`, `Camera` (pixel rect, `Camera.main` by default) or `RectTransform` (e.g. a split-screen panel). |
+| Stabilization Time | Seconds the aspect must stay unchanged before switching (avoids flicker while resizing). |
+| Default Transition | `Instant` or `Tween` (duration, curve, unscaled time). |
+| Is Main | Responsive objects without a switcher in their parents use the main switcher. |
+| On State Changed | UnityEvent with the name of the most specific active state. |
 
 ```csharp
-public enum AspectState
+switcher.ForceState("Wide");          // by name or id, plus broader fallbacks
+switcher.ClearForcedState();
+switcher.Refresh();                   // re-measure and re-apply everything
+switcher.StateChanged += s => Debug.Log(s.PrimaryState?.name);
+IReadOnlyList<AspectStateDefinition> active = switcher.ActiveStates;
+AspectSwitcher.Main;                  // current main switcher
+```
+
+### AspectResponsive
+
+Connects to: the assigned switcher → the nearest enabled switcher in parents → `AspectSwitcher.Main`.
+When enabled it applies the current state immediately, so inactive objects and runtime-spawned prefabs are
+always correct. Transition: inherit the switcher's, instant, or a custom one.
+
+```csharp
+var responsive = gameObject.AddComponent<AspectResponsive>();
+var color = responsive.AddModule<GraphicColorModule>();
+color.SetValue(profile.Find("Any Portrait").Id, Color.red);
+color.SetValue(profile.Find("Any Landscape").Id, Color.green);
+```
+
+## Modules
+
+| Category | Module | Interpolated |
+| --- | --- | --- |
+| Transform | Rect Transform (choose properties), Transform, Sibling Index, Parent | position / size / anchors / rotation / scale |
+| Object | GameObject Active, Component Enabled (Behaviour / Renderer / Collider), Animator Parameter, State Events (UnityEvent) | animator floats |
+| UI | Canvas Group, Graphic Color, Image, TextMeshPro Text | alpha, color, sizes, margins |
+| Layout | Horizontal/Vertical Layout Group, Grid Layout Group, Layout Element, Content Size Fitter, Aspect Ratio Fitter, Canvas Scaler | spacing, padding, cell size, sizes, ratio, scale |
+
+Discrete values (booleans, enums, references) switch at the start of a transition.
+
+> **GameObject Active** on the object that holds the `AspectResponsive` would switch the component off together
+> with the object — put the component on a parent instead (the inspector warns about it).
+
+### Custom modules
+
+```csharp
+[Serializable, AspectModuleMenu("Custom/Outline Distance")]
+public sealed class OutlineModule : AspectModule<Outline, Vector2>
 {
-    Portrait         = 0,
-    Tall             = 1,
-    Compact          = 2,
-    PortraitTall     = 9,
-    Tablet           = 10,
-    CompactLandscape = 11,
-    Landscape        = 20,
-    Wide             = 30,
+    public override bool SupportsInterpolation => true;
+    protected override Vector2 Read(Outline target) => target.effectDistance;
+    protected override void Write(Outline target, Vector2 value) => target.effectDistance = value;
+    protected override Vector2 Interpolate(Vector2 a, Vector2 b, float t) => Vector2.LerpUnclamped(a, b, t);
 }
 ```
 
-Add or remove values here to match your layout needs. After editing the enum, open the `AspectStateConfig` asset and add corresponding range entries.
+Any serializable subclass appears in the *Add Module* menu.
 
----
+## Editor tools
 
-## Code API
+- **Profile inspector** — diagram of all states (overlaps on separate lanes, Game view marker); select a state and
+  drag its edges; reorderable list; validation.
+- **Switcher inspector** — live aspect and active state, preview buttons (Edit Mode: applied to every responsive
+  object using the profile, **Revert preview** restores the exact previous values; Play Mode: forces the state),
+  list of connected objects.
+- **Responsive inspector** — state chips (● = has values), Capture all / Apply / Preview scene / Clear, **● REC**,
+  module cards with target, settings, the value of the selected state and per-module Capture / Apply.
+- **Scene View overlay** *Aspect Preview* — `Window > Aspect Ratio Switcher > Scene View Preview Overlay`.
+- **Overview** — `Window > Aspect Ratio Switcher > Overview`: objects × states matrix
+  (● values, ○ uses a broader state, · nothing).
 
-```csharp
-// Subscribe to state changes from code
-AspectRatioStateSwitcher.OnStateChanged += OnStateChanged;
+## Upgrading from 1.x
 
-private void OnStateChanged(AspectState state)
-{
-    if (state == AspectState.Portrait) { /* ... */ }
-}
-
-// Read current state at any time (null before first evaluation)
-AspectState? current = AspectRatioStateSwitcher.CurrentState;
-
-// Force a specific state (also triggers all registered snapshots)
-AspectRatioStateSwitcher.Instance.ForceState(AspectState.Landscape);
-```
-
-> `OnStateChanged` is a **static** event. Unsubscribe in `OnDestroy` to avoid memory leaks:
-> ```csharp
-> private void OnDestroy()
-> {
->     AspectRatioStateSwitcher.OnStateChanged -= OnStateChanged;
-> }
-> ```
-
----
-
-## Multiple switchers
-
-Each `AspectRatioStateSwitcher` manages only the snapshots registered to it via their **Switcher** field. You can have multiple switchers in one scene (e.g. one per canvas), each with a different config, as long as the static `CurrentState` and `Instance` properties are not relied upon across them.
-
----
-
-## Requirements
-
-- Unity 6000.4.5f1 or later
-- No external dependencies
-
----
-
-## Limitations
-
-- `ComponentFieldSnapshot` supports `float`, `int`, `bool`, `string` fields only. Properties (getters/setters) are not supported.
-- Lerp on `UITransformSnapshot` animates `anchoredPosition` and `sizeDelta` only. Anchor changes are instant.
-- Adding new states requires editing `AspectState.cs` — you cannot add states at runtime or from the Inspector without a code change.
-- One `AspectStateConfig` should be shared between the Switcher and all of its Snapshots.
+See [MIGRATION.md](MIGRATION.md).

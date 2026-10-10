@@ -1,0 +1,22 @@
+{
+  "name": "com.firstsymbol.aspectratioswitcher",
+  "displayName": "Aspect Ratio Switcher",
+  "description": "Responsive layouts for Unity UI and objects by aspect ratio: data-driven aspect states, one component with modules per object (RectTransform, layout groups, text, active state...), tweened transitions, Edit Mode preview with revert, record mode and editor tooling.",
+  "version": "2.0.0",
+  "unity": "6000.0",
+  "documentationUrl": "https://github.com/FirstSymbol/PluginsDevelopment#readme",
+  "keywords": [
+    "ui",
+    "responsive",
+    "aspect ratio",
+    "layout",
+    "adaptive"
+  ],
+  "dependencies": {
+    "com.unity.ugui": "2.0.0"
+  },
+  "author": {
+    "name": "FirstSymbol",
+    "url": "https://linkedin.com/in/firstsymbol"
+  }
+}
