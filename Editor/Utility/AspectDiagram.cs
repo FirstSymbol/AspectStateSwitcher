@@ -6,12 +6,30 @@ using UnityEngine.UIElements;
 
 namespace FirstSymbol.AspectRatioSwitcher.Editor
 {
+  internal enum AspectDiagramMode
+  {
+    /// <summary>Ranges as bars on a logarithmic aspect axis.</summary>
+    Bars,
+
+    /// <summary>Each state as a screen thumbnail with its real proportions.</summary>
+    Screens
+  }
+
   /// <summary>
-  /// Visual map of profile states on a logarithmic aspect axis. Overlapping states are placed on separate lanes.
-  /// When <see cref="Editable"/>, the edges of the selected state can be dragged.
+  /// Visual map of profile states. <see cref="AspectDiagramMode.Bars"/> shows ranges on a logarithmic axis
+  /// (overlapping states on separate lanes; when <see cref="Editable"/>, edges of the selected state can be dragged).
+  /// <see cref="AspectDiagramMode.Screens"/> shows every state as a screen of its typical proportions with
+  /// outlines of its narrowest and widest screens.
   /// </summary>
   internal sealed class AspectDiagram : IMGUIContainer
   {
+    private const string ModeKey = "FirstSymbol.AspectRatioSwitcher.DiagramMode";
+    private const float HeaderHeight = 22f;
+    private const float CardWidth = 112f;
+    private const float CardHeight = 122f;
+    private const float CardGap = 6f;
+    private const float ShapeWidth = 88f;
+    private const float ShapeHeight = 68f;
     private const float MinAspect = 0.4f;
     private const float MaxAspect = 2.8f;
     private const float LaneHeight = 20f;
@@ -27,6 +45,7 @@ namespace FirstSymbol.AspectRatioSwitcher.Editor
     };
 
     private readonly List<(AspectStateDefinition state, int lane)> _layout = new();
+    private readonly List<(Rect rect, AspectStateDefinition state)> _cards = new();
     private int _laneCount;
     private AspectStateDefinition _dragState;
     private bool _dragMax;
@@ -51,26 +70,207 @@ namespace FirstSymbol.AspectRatioSwitcher.Editor
 
     public event Action<AspectStateDefinition> StateClicked;
 
+    /// <summary>Display mode shared by every diagram (remembered between sessions).</summary>
+    public static AspectDiagramMode Mode
+    {
+      get => (AspectDiagramMode)EditorPrefs.GetInt(ModeKey, (int)AspectDiagramMode.Screens);
+      set => EditorPrefs.SetInt(ModeKey, (int)value);
+    }
+
     private void Draw()
     {
       if (Profile == null)
         return;
 
-      LayoutLanes();
-      float height = Padding * 2f + _laneCount * (LaneHeight + LaneGap) + AxisHeight;
+      float width = contentRect.width > 1f ? contentRect.width : 300f;
+      AspectDiagramMode mode = Mode;
+      float bodyHeight;
+      if (mode == AspectDiagramMode.Bars)
+      {
+        LayoutLanes();
+        bodyHeight = Padding * 2f + _laneCount * (LaneHeight + LaneGap) + AxisHeight;
+      }
+      else
+      {
+        bodyHeight = ScreensHeight(width);
+      }
+
+      float height = HeaderHeight + bodyHeight;
       if (Math.Abs(style.height.value.value - height) > 0.5f)
         style.height = height;
 
-      Rect rect = GUILayoutUtility.GetRect(contentRect.width, height);
-      rect.width = contentRect.width;
-      var plot = new Rect(rect.x + Padding, rect.y + Padding, rect.width - Padding * 2f, rect.height - Padding * 2f);
-
+      Rect rect = GUILayoutUtility.GetRect(width, height);
+      rect.width = width;
       EditorGUI.DrawRect(rect, EditorGUIUtility.isProSkin ? new Color(0.13f, 0.13f, 0.13f) : new Color(0.82f, 0.82f, 0.82f));
-      DrawTicks(plot);
-      DrawStates(plot);
-      DrawMarker(plot);
-      HandleInput(plot);
+      DrawHeader(new Rect(rect.x, rect.y, rect.width, HeaderHeight), mode);
+
+      var body = new Rect(rect.x, rect.y + HeaderHeight, rect.width, bodyHeight);
+      if (mode == AspectDiagramMode.Bars)
+      {
+        var plot = new Rect(body.x + Padding, body.y + Padding, body.width - Padding * 2f, body.height - Padding * 2f);
+        DrawTicks(plot);
+        DrawStates(plot);
+        DrawMarker(plot);
+        HandleInput(plot);
+      }
+      else
+      {
+        DrawScreens(body);
+      }
     }
+
+    private void DrawHeader(Rect rect, AspectDiagramMode mode)
+    {
+      var hint = new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.MiddleLeft };
+      string text = mode == AspectDiagramMode.Bars
+        ? Editable ? "Click a state, drag its edges to edit" : "Aspect = width / height"
+        : "Filled: typical screen, outlines: narrowest and widest";
+      GUI.Label(new Rect(rect.x + Padding, rect.y + 2f, rect.width - 140f, rect.height - 2f), text, hint);
+
+      var bars = new Rect(rect.xMax - 124f - Padding, rect.y + 3f, 62f, 16f);
+      var screens = new Rect(bars.xMax, bars.y, 62f, 16f);
+      if (GUI.Toggle(bars, mode == AspectDiagramMode.Bars, "Bars", EditorStyles.miniButtonLeft) && mode != AspectDiagramMode.Bars)
+      {
+        Mode = AspectDiagramMode.Bars;
+        MarkDirtyRepaint();
+      }
+
+      if (GUI.Toggle(screens, mode == AspectDiagramMode.Screens, "Screens", EditorStyles.miniButtonRight) && mode != AspectDiagramMode.Screens)
+      {
+        Mode = AspectDiagramMode.Screens;
+        MarkDirtyRepaint();
+      }
+    }
+
+    #region Screens
+
+    private int CardCount
+    {
+      get
+      {
+        int count = Marker.HasValue ? 1 : 0;
+        foreach (AspectStateDefinition state in Profile.States)
+          if (state != null && state.range.IsValid)
+            count++;
+        return count;
+      }
+    }
+
+    private static int CardsPerRow(float width) =>
+      Mathf.Max(1, Mathf.FloorToInt((width - Padding * 2f + CardGap) / (CardWidth + CardGap)));
+
+    private float ScreensHeight(float width)
+    {
+      int rows = Mathf.Max(1, Mathf.CeilToInt(CardCount / (float)CardsPerRow(width)));
+      return Padding * 2f + rows * CardHeight + (rows - 1) * CardGap;
+    }
+
+    private void DrawScreens(Rect body)
+    {
+      _cards.Clear();
+      int perRow = CardsPerRow(body.width);
+      float rowWidth = perRow * CardWidth + (perRow - 1) * CardGap;
+      float startX = body.x + Mathf.Max(Padding, (body.width - rowWidth) / 2f);
+      int index = 0;
+
+      Rect CardRect(int i) => new(
+        startX + i % perRow * (CardWidth + CardGap),
+        body.y + Padding + i / perRow * (CardHeight + CardGap),
+        CardWidth, CardHeight);
+
+      foreach (AspectStateDefinition state in Profile.States)
+      {
+        if (state == null || !state.range.IsValid)
+          continue;
+
+        Rect card = CardRect(index++);
+        _cards.Add((card, state));
+        DrawStateScreen(card, state);
+      }
+
+      if (Marker.HasValue)
+        DrawMarkerScreen(CardRect(index));
+
+      Event e = Event.current;
+      if (e.type != EventType.MouseDown || e.button != 0)
+        return;
+
+      foreach ((Rect rect, AspectStateDefinition state) in _cards)
+      {
+        if (!rect.Contains(e.mousePosition))
+          continue;
+        SelectedId = state.Id;
+        StateClicked?.Invoke(state);
+        e.Use();
+        MarkDirtyRepaint();
+        return;
+      }
+    }
+
+    private void DrawStateScreen(Rect card, AspectStateDefinition state)
+    {
+      bool selected = state.Id == SelectedId;
+      bool active = IsActive?.Invoke(state) ?? false;
+      Color color = state.color;
+
+      Color background = selected ? new Color(color.r, color.g, color.b, 0.22f) : new Color(0f, 0f, 0f, 0.18f);
+      RoundedRect(card, background, 0f, 6f);
+      if (selected || active)
+        RoundedRect(card, selected ? Color.white : new Color(color.r, color.g, color.b, 0.9f), selected ? 2f : 1.5f, 6f);
+
+      var shapeBox = new Rect(card.x + (card.width - ShapeWidth) / 2f, card.y + 8f, ShapeWidth, ShapeHeight);
+      var outline = new Color(color.r, color.g, color.b, 0.55f);
+      if (state.range.HasLowerBound)
+        RoundedRect(Shape(shapeBox, Mathf.Max(state.range.min, MinAspect)), outline, 1f, 3f);
+      if (state.range.HasUpperBound)
+        RoundedRect(Shape(shapeBox, Mathf.Min(state.range.max, MaxAspect)), outline, 1f, 3f);
+
+      Rect screen = Shape(shapeBox, state.range.Center);
+      RoundedRect(screen, new Color(color.r, color.g, color.b, active || selected ? 0.95f : 0.7f), 0f, 4f);
+      // A thin dark bezel makes the thumbnail read as a screen.
+      RoundedRect(screen, new Color(0f, 0f, 0f, 0.45f), 2f, 4f);
+
+      var nameStyle = new GUIStyle(EditorStyles.miniBoldLabel) { alignment = TextAnchor.MiddleCenter, clipping = TextClipping.Clip };
+      var rangeStyle = new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.MiddleCenter, clipping = TextClipping.Clip };
+      GUI.Label(new Rect(card.x + 2f, shapeBox.yMax + 6f, card.width - 4f, 16f), active ? "● " + state.name : state.name, nameStyle);
+      GUI.Label(new Rect(card.x + 2f, shapeBox.yMax + 21f, card.width - 4f, 14f), state.range.ToString(), rangeStyle);
+    }
+
+    private void DrawMarkerScreen(Rect card)
+    {
+      var red = new Color(0.95f, 0.3f, 0.3f);
+      RoundedRect(card, new Color(0f, 0f, 0f, 0.18f), 0f, 6f);
+
+      var shapeBox = new Rect(card.x + (card.width - ShapeWidth) / 2f, card.y + 8f, ShapeWidth, ShapeHeight);
+      Rect screen = Shape(shapeBox, Mathf.Clamp(Marker.Value, MinAspect, MaxAspect));
+      RoundedRect(screen, new Color(0.08f, 0.08f, 0.08f, 1f), 0f, 4f);
+      RoundedRect(screen, red, 2f, 4f);
+
+      var nameStyle = new GUIStyle(EditorStyles.miniBoldLabel) { alignment = TextAnchor.MiddleCenter };
+      nameStyle.normal.textColor = red;
+      var valueStyle = new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.MiddleCenter };
+      GUI.Label(new Rect(card.x, shapeBox.yMax + 6f, card.width, 16f), MarkerLabel == "Game" ? "Game view" : MarkerLabel, nameStyle);
+      GUI.Label(new Rect(card.x, shapeBox.yMax + 21f, card.width, 14f), AspectRange.Format(Marker.Value), valueStyle);
+    }
+
+    /// <summary>Largest rect of the aspect that fits the box, centered.</summary>
+    private static Rect Shape(Rect box, float aspect)
+    {
+      float width = box.width;
+      float height = width / aspect;
+      if (height > box.height)
+      {
+        height = box.height;
+        width = height * aspect;
+      }
+
+      return new Rect(box.center.x - width / 2f, box.center.y - height / 2f, width, height);
+    }
+
+    private static void RoundedRect(Rect rect, Color color, float borderWidth, float radius) =>
+      GUI.DrawTexture(rect, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0f, color, borderWidth, radius);
+
+    #endregion
 
     private void LayoutLanes()
     {

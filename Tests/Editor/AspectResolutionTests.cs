@@ -51,26 +51,30 @@ namespace FirstSymbol.AspectRatioSwitcher.Tests
     [Test]
     public void MatchingStatesAreOrderedFromMostSpecific()
     {
-      CollectionAssert.AreEqual(new[] { "Portrait", "Any Portrait" }, Matching(0.5f));
-      CollectionAssert.AreEqual(new[] { "Tall", "Tablet", "Any Portrait" }, Matching(0.8f));
-      CollectionAssert.AreEqual(new[] { "Compact", "Tablet", "Any Landscape" }, Matching(1.2f));
-      CollectionAssert.AreEqual(new[] { "Landscape", "Any Landscape" }, Matching(1.6f));
-      CollectionAssert.AreEqual(new[] { "Wide", "Any Landscape" }, Matching(2.4f));
+      CollectionAssert.AreEqual(new[] { "Portrait" }, Matching(9f / 16f));
+      CollectionAssert.AreEqual(new[] { "3:4", "Portrait" }, Matching(3f / 4f));
+      CollectionAssert.AreEqual(new[] { "1:1", "Portrait" }, Matching(0.95f));
+      CollectionAssert.AreEqual(new[] { "1:1", "Landscape" }, Matching(1f));
+      CollectionAssert.AreEqual(new[] { "4:3", "Landscape" }, Matching(4f / 3f));
+      CollectionAssert.AreEqual(new[] { "Landscape" }, Matching(16f / 9f));
     }
 
     [Test]
     public void BroaderStatesActAsFallback()
     {
       var module = new GraphicColorModule();
-      module.SetValue(_profile.Find("Any Landscape").Id, Color.green);
-      module.SetValue(_profile.Find("Wide").Id, Color.red);
+      module.SetValue(_profile.Find("Landscape").Id, Color.green);
+      module.SetValue(_profile.Find("4:3").Id, Color.red);
 
       var states = new List<AspectStateDefinition>();
-      _profile.GetMatchingStates(1.6f, states);
-      Assert.AreEqual("Any Landscape", AspectStateResolver.Resolve(states, module.HasValue).name);
+      _profile.GetMatchingStates(16f / 9f, states);
+      Assert.AreEqual("Landscape", AspectStateResolver.Resolve(states, module.HasValue).name);
 
-      _profile.GetMatchingStates(2.4f, states);
-      Assert.AreEqual("Wide", AspectStateResolver.Resolve(states, module.HasValue).name);
+      _profile.GetMatchingStates(4f / 3f, states);
+      Assert.AreEqual("4:3", AspectStateResolver.Resolve(states, module.HasValue).name);
+
+      _profile.GetMatchingStates(1f, states);
+      Assert.AreEqual("Landscape", AspectStateResolver.Resolve(states, module.HasValue).name, "1:1 has no value, Landscape is the fallback.");
 
       _profile.GetMatchingStates(0.5f, states);
       Assert.IsNull(AspectStateResolver.Resolve(states, module.HasValue));
@@ -81,6 +85,8 @@ namespace FirstSymbol.AspectRatioSwitcher.Tests
     {
       // A broad state listed first must not win over a precise one.
       var profile = ScriptableObject.CreateInstance<AspectProfile>();
+      foreach (AspectStateDefinition existing in profile.States.ToList())
+        profile.RemoveState(existing);
       profile.AddState("Broad", AspectRange.Between(1f, 1.78f), Color.white);
       profile.AddState("Compact", AspectRange.Between(1f, 1.34f), Color.white);
       profile.AddState("Landscape", AspectRange.Between(1.34f, 1.78f), Color.white);
@@ -97,14 +103,14 @@ namespace FirstSymbol.AspectRatioSwitcher.Tests
     public void FallbackChainStartsWithForcedState()
     {
       var chain = new List<AspectStateDefinition>();
-      _profile.GetFallbackChain(_profile.Find("Wide"), chain);
-      CollectionAssert.AreEqual(new[] { "Wide", "Any Landscape" }, chain.Select(s => s.name).ToArray());
+      _profile.GetFallbackChain(_profile.Find("4:3"), chain);
+      CollectionAssert.AreEqual(new[] { "4:3", "Landscape" }, chain.Select(s => s.name).ToArray());
     }
 
     [Test]
     public void FindWorksByIdAndName()
     {
-      AspectStateDefinition wide = _profile.Find("wide");
+      AspectStateDefinition wide = _profile.Find("landscape");
       Assert.IsNotNull(wide);
       Assert.AreSame(wide, _profile.Find(wide.Id));
       Assert.IsNull(_profile.Find("Unknown"));
@@ -128,7 +134,7 @@ namespace FirstSymbol.AspectRatioSwitcher.Tests
       try
       {
         var module = new RectTransformModule { TypedTarget = (RectTransform)go.transform };
-        string id = _profile.Find("Wide").Id;
+        string id = _profile.Find("4:3").Id;
 
         ((RectTransform)go.transform).anchoredPosition = new Vector2(10, 20);
         module.Capture(id);
@@ -149,7 +155,7 @@ namespace FirstSymbol.AspectRatioSwitcher.Tests
     public void UnknownStateValuesAreRemoved()
     {
       var module = new GraphicColorModule();
-      module.SetValue(_profile.Find("Wide").Id, Color.red);
+      module.SetValue(_profile.Find("4:3").Id, Color.red);
       module.SetValue("deleted-state", Color.blue);
 
       Assert.AreEqual(1, module.RemoveUnknownStates(_profile));

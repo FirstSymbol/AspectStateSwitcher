@@ -5,13 +5,14 @@
 Full rewrite. See [MIGRATION.md](MIGRATION.md).
 
 ### Added
-- `AspectProfile` with data-driven states (name, color, range, stable id) and a default device set.
+- `AspectProfile` with data-driven states (name, color, range, stable id); defaults: Portrait, Landscape,
+  4:3, 3:4 and 1:1.
 - Specificity-based matching with fallbacks; `ForceState` with fallback chain.
 - `AspectSwitcher` sources: Screen, Camera, RectTransform; realtime stabilization; main switcher.
 - `AspectResponsive` component with 18 built-in modules and a generic base for custom ones.
 - Tween transitions stepped by the switcher (no coroutines, unscaled time), per-object override.
-- Editor: profile diagram with draggable ranges, switcher and responsive inspectors, revertible
-  Edit Mode preview, record mode, Scene View overlay, overview window.
+- Editor: profile diagram with Screens (screen thumbnails) and Bars (draggable ranges) views, switcher and
+  responsive inspectors, revertible Edit Mode preview, record mode, Scene View overlay, overview window.
 - EditMode tests for ranges, matching, fallbacks and modules.
 - `package.json`, package-level `.gitignore`.
 

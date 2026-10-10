@@ -202,7 +202,7 @@ namespace FirstSymbol.AspectRatioSwitcher.Editor
         row.AddToClassList("ars-list-row");
         var name = new Label(responsive.name);
         name.AddToClassList("ars-list-row__name");
-        var count = AspectEditorUtility.Badge($"{responsive.Modules.Count} modules", "muted");
+        var count = AspectEditorUtility.Badge(responsive.Modules.Count == 1 ? "1 module" : $"{responsive.Modules.Count} modules", "muted");
         AspectResponsive captured = responsive;
         row.Add(name);
         row.Add(count);

@@ -123,17 +123,17 @@ namespace FirstSymbol.AspectRatioSwitcher
       return problems;
     }
 
-    /// <summary>States similar to common device classes.</summary>
+    /// <summary>
+    /// Default states: broad Portrait / Landscape plus precise 4:3, 3:4 and 1:1 bands
+    /// (bounds at the geometric middle between neighbouring ratios). Precise states win where they match.
+    /// </summary>
     public static List<AspectStateDefinition> CreateDefaultStates() => new()
     {
-      new AspectStateDefinition("Portrait", AspectRange.Below(0.75f), new Color(0.36f, 0.55f, 0.95f)),
-      new AspectStateDefinition("Tall", AspectRange.Between(0.75f, 1f), new Color(0.25f, 0.75f, 0.85f)),
-      new AspectStateDefinition("Compact", AspectRange.Between(1f, 1.34f), new Color(0.3f, 0.78f, 0.5f)),
-      new AspectStateDefinition("Landscape", AspectRange.Between(1.34f, 1.78f), new Color(0.95f, 0.7f, 0.25f)),
-      new AspectStateDefinition("Wide", AspectRange.Above(1.78f), new Color(0.92f, 0.42f, 0.38f)),
-      new AspectStateDefinition("Any Portrait", AspectRange.Below(1f), new Color(0.55f, 0.48f, 0.9f)),
-      new AspectStateDefinition("Tablet", AspectRange.Between(0.75f, 1.34f), new Color(0.5f, 0.82f, 0.72f)),
-      new AspectStateDefinition("Any Landscape", AspectRange.Above(1f), new Color(0.9f, 0.55f, 0.7f))
+      new AspectStateDefinition("Portrait", AspectRange.Below(1f), new Color(0.36f, 0.55f, 0.95f)),
+      new AspectStateDefinition("Landscape", AspectRange.Above(1f), new Color(0.95f, 0.7f, 0.25f)),
+      new AspectStateDefinition("4:3", AspectRange.Between(1.15f, 1.45f), new Color(0.92f, 0.42f, 0.38f)),
+      new AspectStateDefinition("3:4", AspectRange.Between(0.7f, 0.87f), new Color(0.25f, 0.75f, 0.85f)),
+      new AspectStateDefinition("1:1", AspectRange.Between(0.87f, 1.15f), new Color(0.3f, 0.78f, 0.5f))
     };
 
     private void Reset() => states = CreateDefaultStates();

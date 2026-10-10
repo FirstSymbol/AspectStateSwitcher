@@ -20,16 +20,16 @@ Package Manager → *Add package from git URL* → the repository URL, or copy t
 
 1. **Create a profile** — *Create → Aspect Ratio Switcher → Aspect Profile*. It starts with a default set of states:
 
-   | State | Range | Typical device |
+   | State | Range | Meaning |
    | --- | --- | --- |
-   | Portrait | < 0.75 | phone, portrait |
-   | Tall | 0.75 – 1 | tablet, portrait |
-   | Compact | 1 – 1.34 | tablet, landscape |
-   | Landscape | 1.34 – 1.78 | laptop / 16:10 / 16:9 |
-   | Wide | ≥ 1.78 | phone landscape, ultrawide |
-   | Any Portrait | < 1 | fallback |
-   | Tablet | 0.75 – 1.34 | fallback |
-   | Any Landscape | ≥ 1 | fallback |
+   | Portrait | < 1 | any portrait screen (phones 9:16, 9:19.5...) |
+   | Landscape | ≥ 1 | any landscape screen (16:9, 21:9...) |
+   | 4:3 | 1.15 – 1.45 | tablets in landscape |
+   | 3:4 | 0.7 – 0.87 | tablets in portrait |
+   | 1:1 | 0.87 – 1.15 | square-ish screens, foldables |
+
+   Portrait and Landscape are broad defaults; the precise 4:3, 3:4 and 1:1 bands win where they match
+   (their bounds are the geometric middle between neighbouring ratios). Add, rename or recolor states freely.
 
 2. **Add an `AspectSwitcher`** to a scene object (usually the Canvas) and assign the profile.
 3. **Add `AspectResponsive`** to an object, press **+ Add Module** (modules for components on the object are suggested).
@@ -38,14 +38,15 @@ Package Manager → *Add package from git URL* → the repository URL, or copy t
 5. Press **Play** and resize the Game view, or use **Preview** in the switcher / Scene View overlay in Edit Mode.
 
 A demo scene lives in this repository's host project (`Assets/Scenes/AspectSwitcherDemo.unity`): a header, a sidebar
-shown only in landscape, a bottom navigation shown only in portrait and a card grid with 2/3/4 columns.
+shown only in landscape, a bottom navigation shown only in portrait and a card grid whose columns and card sizes change
+for Portrait, 3:4, 1:1, Landscape and 4:3. The title only has Portrait and Landscape values and shows the fallback.
 
 ## Matching rules
 
 The active states for an aspect are all states whose range contains it, ordered from the most specific:
 a range contained in another one wins, otherwise the narrower range wins, otherwise profile order.
-Each module uses the **first active state it has a value for**. So with values for *Any Landscape* and *Wide*,
-a 21:9 screen uses *Wide* and a 16:9 screen uses *Any Landscape*. A module without a value for any active state
+Each module uses the **first active state it has a value for**. So with values for *Landscape* and *4:3*,
+a 4:3 tablet uses *4:3* and a 16:9 screen uses *Landscape*. A module without a value for any active state
 leaves its target untouched.
 
 Ranges are half-open: `min ≤ aspect < max` where aspect = width / height.
@@ -64,7 +65,7 @@ Ranges are half-open: `min ≤ aspect < max` where aspect = width / height.
 | On State Changed | UnityEvent with the name of the most specific active state. |
 
 ```csharp
-switcher.ForceState("Wide");          // by name or id, plus broader fallbacks
+switcher.ForceState("4:3");           // by name or id, plus broader fallbacks
 switcher.ClearForcedState();
 switcher.Refresh();                   // re-measure and re-apply everything
 switcher.StateChanged += s => Debug.Log(s.PrimaryState?.name);
@@ -81,8 +82,8 @@ always correct. Transition: inherit the switcher's, instant, or a custom one.
 ```csharp
 var responsive = gameObject.AddComponent<AspectResponsive>();
 var color = responsive.AddModule<GraphicColorModule>();
-color.SetValue(profile.Find("Any Portrait").Id, Color.red);
-color.SetValue(profile.Find("Any Landscape").Id, Color.green);
+color.SetValue(profile.Find("Portrait").Id, Color.red);
+color.SetValue(profile.Find("Landscape").Id, Color.green);
 ```
 
 ## Modules
@@ -116,8 +117,10 @@ Any serializable subclass appears in the *Add Module* menu.
 
 ## Editor tools
 
-- **Profile inspector** — diagram of all states (overlaps on separate lanes, Game view marker); select a state and
-  drag its edges; reorderable list; validation.
+- **Profile inspector** — diagram with two views (toggle in its corner, remembered):
+  *Screens* draws every state as a screen thumbnail of its typical proportions with outlines of its narrowest and
+  widest screens, plus the current Game view; *Bars* shows ranges on an aspect axis (overlaps on separate lanes),
+  where the edges of the selected state can be dragged. Reorderable list and validation below.
 - **Switcher inspector** — live aspect and active state, preview buttons (Edit Mode: applied to every responsive
   object using the profile, **Revert preview** restores the exact previous values; Play Mode: forces the state),
   list of connected objects.
