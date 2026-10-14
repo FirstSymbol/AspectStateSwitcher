@@ -15,6 +15,7 @@
   "dependencies": {
     "com.unity.ugui": "2.0.0"
   },
+  "license": "MIT",
   "author": {
     "name": "FirstSymbol",
     "url": "https://linkedin.com/in/firstsymbol"
