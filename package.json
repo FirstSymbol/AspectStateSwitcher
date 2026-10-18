@@ -4,7 +4,8 @@
   "description": "Responsive layouts for Unity UI and objects by aspect ratio: data-driven aspect states, one component with modules per object (RectTransform, layout groups, text, active state...), tweened transitions, Edit Mode preview with revert, record mode and editor tooling.",
   "version": "2.0.0",
   "unity": "6000.0",
-  "documentationUrl": "https://github.com/FirstSymbol/PluginsDevelopment#readme",
+  "documentationUrl": "https://github.com/FirstSymbol/AspectStateSwitcher#readme",
+  "changelogUrl": "https://github.com/FirstSymbol/AspectStateSwitcher/blob/main/CHANGELOG.md",
   "keywords": [
     "ui",
     "responsive",
